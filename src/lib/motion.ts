@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type OrientationPermissionApi = {
   requestPermission: () => Promise<'granted' | 'denied'>;
@@ -150,4 +150,44 @@ export function useTiltControl(
     window.addEventListener('deviceorientation', handler);
     return () => window.removeEventListener('deviceorientation', handler);
   }, [active, thresholdDegrees]);
+}
+
+export interface OrientationDebugReading {
+  alpha: number | null;
+  beta: number | null;
+  gamma: number | null;
+  angle: number;
+  pitch: number | null;
+}
+
+const DEBUG_THROTTLE_MS = 150;
+
+/** Live raw sensor + computed-pitch readout, throttled, for calibrating tilt controls. */
+export function useOrientationDebug(active: boolean): OrientationDebugReading | null {
+  const [reading, setReading] = useState<OrientationDebugReading | null>(null);
+  const lastUpdate = useRef(0);
+
+  useEffect(() => {
+    if (!active) {
+      setReading(null);
+      return;
+    }
+
+    const handler = (e: DeviceOrientationEvent) => {
+      const now = performance.now();
+      if (now - lastUpdate.current < DEBUG_THROTTLE_MS) return;
+      lastUpdate.current = now;
+      const angle = getOrientationAngle();
+      const pitch =
+        e.beta !== null && e.beta !== undefined && e.gamma !== null && e.gamma !== undefined
+          ? screenRelativePitch(e.beta, e.gamma, angle)
+          : null;
+      setReading({ alpha: e.alpha, beta: e.beta, gamma: e.gamma, angle, pitch });
+    };
+
+    window.addEventListener('deviceorientation', handler);
+    return () => window.removeEventListener('deviceorientation', handler);
+  }, [active]);
+
+  return reading;
 }

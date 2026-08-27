@@ -15,8 +15,8 @@ export function IntroScreen({ soundEnabled, onFinish }: IntroScreenProps) {
     const outTimer = setTimeout(() => {
       setPhase('out');
       if (soundEnabled) playWhoosh(0.32);
-    }, 1500);
-    const finishTimer = setTimeout(onFinish, 2050);
+    }, 2500);
+    const finishTimer = setTimeout(onFinish, 3050);
     return () => {
       clearTimeout(holdTimer);
       clearTimeout(outTimer);

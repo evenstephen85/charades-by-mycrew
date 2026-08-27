@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../state/GameContext';
 import { useOrientationLock } from '../lib/orientation';
-import { useTiltControl } from '../lib/motion';
+import { useOrientationDebug, useTiltControl } from '../lib/motion';
 import { playBuzzer, playCorrect, playCountdownTick, playGo, playWarning, playWhoosh } from '../lib/sound';
 import { formatTime } from '../lib/util';
 import { InGameMenu } from '../components/InGameMenu';
+import { LandscapeGate } from '../components/LandscapeGate';
 import { CheckIcon, ArrowIcon } from '../components/icons';
 
 type Phase = 'countdown' | 'active';
@@ -18,11 +19,10 @@ export function PlayingScreen() {
   const [phase, setPhase] = useState<Phase>('countdown');
   const [countdown, setCountdown] = useState(3);
   const [timeLeft, setTimeLeft] = useState(game?.config.roundSeconds ?? 60);
-  const [paused, setPaused] = useState(false);
   const endedRef = useRef(false);
 
   useEffect(() => {
-    if (phase !== 'countdown' || paused) return;
+    if (phase !== 'countdown') return;
     if (countdown <= 0) {
       if (soundOn) playGo();
       setPhase('active');
@@ -31,10 +31,10 @@ export function PlayingScreen() {
     if (soundOn) playCountdownTick();
     const t = setTimeout(() => setCountdown((c) => c - 1), 700);
     return () => clearTimeout(t);
-  }, [phase, countdown, soundOn, paused]);
+  }, [phase, countdown, soundOn]);
 
   useEffect(() => {
-    if (phase !== 'active' || paused) return;
+    if (phase !== 'active') return;
     if (timeLeft <= 0) {
       if (!endedRef.current) {
         endedRef.current = true;
@@ -47,38 +47,34 @@ export function PlayingScreen() {
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, timeLeft, soundOn, paused]);
+  }, [phase, timeLeft, soundOn]);
 
   const handleCorrect = () => {
-    if (phase !== 'active' || paused) return;
+    if (phase !== 'active') return;
     if (soundOn) playCorrect();
     answer('correct');
   };
   const handleSkip = () => {
-    if (phase !== 'active' || paused) return;
+    if (phase !== 'active') return;
     if (soundOn) playWhoosh(0.22);
     answer('skip');
   };
 
-  useTiltControl(
-    !!game && phase === 'active' && !paused && game.inputMode === 'tilt',
-    handleCorrect,
-    handleSkip,
-    state.settings.tiltThreshold,
-  );
+  const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt';
+  useTiltControl(tiltActive, handleCorrect, handleSkip, state.settings.tiltThreshold);
+  const debug = useOrientationDebug(phase === 'active');
 
   if (!game || !game.currentTurn) return null;
 
   return (
     <div className="screen playing-screen">
-      <InGameMenu pause={{ paused, onToggle: () => setPaused((p) => !p) }} />
-
+      <LandscapeGate />
       <div className="playing-top">
         <span className="correct-count">{game.currentTurn.correct.length}</span>
         <span className={`timer-ring ${timeLeft <= 5 ? 'low' : ''}`}>
           {phase === 'active' ? formatTime(timeLeft) : formatTime(game.config.roundSeconds)}
         </span>
-        <span aria-hidden="true" style={{ width: 40 }} />
+        <InGameMenu />
       </div>
 
       <div className="playing-body">
@@ -103,14 +99,10 @@ export function PlayingScreen() {
         )}
       </div>
 
-      {paused && (
-        <div className="modal-overlay">
-          <div className="modal-card stack" style={{ textAlign: 'center' }}>
-            <h2>Paused</h2>
-            <button className="btn btn-primary btn-block" onClick={() => setPaused(false)}>
-              Resume
-            </button>
-          </div>
+      {debug && (
+        <div className="debug-readout">
+          α {debug.alpha?.toFixed(1) ?? '—'} · β {debug.beta?.toFixed(1) ?? '—'} · γ{' '}
+          {debug.gamma?.toFixed(1) ?? '—'} · angle {debug.angle} · pitch {debug.pitch?.toFixed(1) ?? '—'}
         </div>
       )}
     </div>

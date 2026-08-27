@@ -3,7 +3,7 @@ import { GameProvider, useGame } from './state/GameContext';
 import { loadActiveGame, clearActiveGame } from './lib/storage';
 import { requestFullscreen } from './lib/orientation';
 import { hideNativeStatusBar } from './lib/nativeChrome';
-import { teamThemeVars } from './lib/color';
+import { contrastText, teamThemeVars } from './lib/color';
 import { ResumePrompt } from './components/ResumePrompt';
 import { IntroScreen } from './screens/IntroScreen';
 import { PackSelectScreen } from './screens/PackSelectScreen';
@@ -50,9 +50,11 @@ function Root() {
     root.style.setProperty('--surface', state.settings.theme.surface);
     root.style.setProperty('--text', state.settings.theme.text);
     root.style.setProperty('--accent', state.settings.theme.accent);
+    root.style.setProperty('--btn-primary-text', contrastText(state.settings.theme.accent));
   }, [state.settings.theme]);
 
-  const teamColor = currentTeamColor(state);
+  const [finalPhaseColor, setFinalPhaseColor] = useState<string | null>(null);
+  const teamColor = state.screen === 'final-results' ? finalPhaseColor : currentTeamColor(state);
   const shellStyle = teamColor ? teamThemeVars(teamColor) : undefined;
   const packMode: 'new-game' | 'manage' = state.draftPackChoice ? 'new-game' : 'manage';
 
@@ -79,7 +81,7 @@ function Root() {
       case 'turn-summary':
         return <TurnSummaryScreen />;
       case 'final-results':
-        return <FinalResultsScreen />;
+        return <FinalResultsScreen onPhaseColor={setFinalPhaseColor} />;
       default:
         return <PackSelectScreen />;
     }

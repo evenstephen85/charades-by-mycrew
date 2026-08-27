@@ -1,6 +1,7 @@
 import { useGame } from '../state/GameContext';
 import { useOrientationLock } from '../lib/orientation';
 import { InGameMenu } from '../components/InGameMenu';
+import { LandscapeGate } from '../components/LandscapeGate';
 
 export function TurnSummaryScreen() {
   useOrientationLock('landscape');
@@ -24,8 +25,11 @@ export function TurnSummaryScreen() {
 
   return (
     <div className="screen turn-summary-screen">
-      <InGameMenu />
-      <h2 style={{ textAlign: 'center' }}>{team?.name} — {result.correct.length} Correct</h2>
+      <LandscapeGate />
+      <div className="top-bar">
+        <h2>{team?.name} — {result.correct.length} Correct</h2>
+        <InGameMenu />
+      </div>
 
       <div className="summary-columns">
         <div className="card stack">

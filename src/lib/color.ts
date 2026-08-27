@@ -36,13 +36,22 @@ export function shade(hex: string, amount: number): string {
   );
 }
 
+function surfaceFor(color: string, text: string): string {
+  return shade(color, text !== '#ffffff' ? 0.18 : -0.18);
+}
+
 /** CSS custom properties that reskin a screen into a team's color. */
 export function teamThemeVars(color: string): Record<string, string> {
   const text = contrastText(color);
-  const isLight = text !== '#ffffff';
   return {
     '--bg': color,
-    '--surface': shade(color, isLight ? 0.18 : -0.18),
+    '--surface': surfaceFor(color, text),
     '--text': text,
   };
+}
+
+/** Background/surface/text triad for a base app theme built from one chosen color. */
+export function deriveThemeColors(background: string): { background: string; surface: string; text: string } {
+  const text = contrastText(background);
+  return { background, surface: surfaceFor(background, text), text };
 }

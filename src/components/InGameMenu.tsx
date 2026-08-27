@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { useGame } from '../state/GameContext';
 import { MenuIcon, CloseIcon } from './icons';
 
-interface InGameMenuProps {
-  pause?: { paused: boolean; onToggle: () => void };
-}
-
-export function InGameMenu({ pause }: InGameMenuProps) {
+export function InGameMenu() {
   const { openSettings, pauseHome } = useGame();
   const [open, setOpen] = useState(false);
 
@@ -30,17 +26,6 @@ export function InGameMenu({ pause }: InGameMenuProps) {
               </button>
             </div>
             <div className="stack">
-              {pause && (
-                <button
-                  className="btn btn-block"
-                  onClick={() => {
-                    pause.onToggle();
-                    setOpen(false);
-                  }}
-                >
-                  {pause.paused ? 'Resume' : 'Pause'}
-                </button>
-              )}
               <button
                 className="btn btn-block"
                 onClick={() => {

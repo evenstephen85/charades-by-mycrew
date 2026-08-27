@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useGame } from '../state/GameContext';
 import { Switch } from '../components/Switch';
 import { defaultTheme } from '../lib/storage';
+import { deriveThemeColors } from '../lib/color';
+import { TEAM_COLORS } from '../lib/teamColors';
+import { ArrowIcon } from '../components/icons';
 
-const BG_PRESETS = ['#4a90d9', '#6fb1e8', '#2f6fb0', '#1b1033', '#1a1a1a', '#0b3d2e'];
-const ACCENT_PRESETS = ['#ffffff', '#ffcc3d', '#3ddc84', '#ff5da2', '#ff9a3d', '#b985ff'];
 const TILT_MIN = 20;
 const TILT_MAX = 50;
 
@@ -17,8 +18,8 @@ export function SettingsScreen() {
   return (
     <div className="screen settings-screen">
       <div className="top-bar">
-        <button className="icon-btn" onClick={closeSettings}>
-          ← Back
+        <button className="icon-btn" onClick={closeSettings} aria-label="Back">
+          <ArrowIcon size={20} style={{ transform: 'rotate(180deg)' }} />
         </button>
         <h2>Settings</h2>
         <div style={{ width: 40 }} />
@@ -68,22 +69,22 @@ export function SettingsScreen() {
         </div>
         {showBg && (
           <div className="color-swatches">
-            {BG_PRESETS.map((c) => (
+            {TEAM_COLORS.map((c) => (
               <button
-                key={c}
-                className={`color-swatch-btn ${settings.theme.background === c ? 'selected' : ''}`}
-                style={{ background: c }}
-                aria-label={`Background ${c}`}
-                onClick={() => updateSettings({ theme: { ...settings.theme, background: c, surface: c } })}
+                key={c.hex}
+                className={`color-swatch-btn ${settings.theme.background === c.hex ? 'selected' : ''}`}
+                style={{ background: c.hex }}
+                aria-label={`Background ${c.name}`}
+                onClick={() =>
+                  updateSettings({ theme: { ...settings.theme, ...deriveThemeColors(c.hex) } })
+                }
               />
             ))}
             <input
               type="color"
               value={settings.theme.background}
               onChange={(e) =>
-                updateSettings({
-                  theme: { ...settings.theme, background: e.target.value, surface: e.target.value },
-                })
+                updateSettings({ theme: { ...settings.theme, ...deriveThemeColors(e.target.value) } })
               }
             />
           </div>
@@ -102,13 +103,13 @@ export function SettingsScreen() {
         </div>
         {showAccent && (
           <div className="color-swatches">
-            {ACCENT_PRESETS.map((c) => (
+            {TEAM_COLORS.map((c) => (
               <button
-                key={c}
-                className={`color-swatch-btn ${settings.theme.accent === c ? 'selected' : ''}`}
-                style={{ background: c }}
-                aria-label={`Accent ${c}`}
-                onClick={() => updateSettings({ theme: { ...settings.theme, accent: c } })}
+                key={c.hex}
+                className={`color-swatch-btn ${settings.theme.accent === c.hex ? 'selected' : ''}`}
+                style={{ background: c.hex }}
+                aria-label={`Accent ${c.name}`}
+                onClick={() => updateSettings({ theme: { ...settings.theme, accent: c.hex } })}
               />
             ))}
             <input
