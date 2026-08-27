@@ -5,7 +5,7 @@ import { playDrumroll, playTaDa } from '../lib/sound';
 import { InGameMenu } from '../components/InGameMenu';
 
 const DRUMROLL_SECONDS = 2.4;
-const WINNER_HOLD_MS = 1800;
+const WINNER_HOLD_MS = 3600;
 
 type Phase = 'drumroll' | 'winner' | 'scores';
 
@@ -17,7 +17,8 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
   useOrientationLock('landscape');
   const { state, startGame, endGame } = useGame();
   const game = state.game;
-  const [phase, setPhase] = useState<Phase>('drumroll');
+  const isFreeplay = !!game && game.config.teamIds.length === 1;
+  const [phase, setPhase] = useState<Phase>(isFreeplay ? 'scores' : 'drumroll');
   const soundOn = state.settings.soundEnabled;
 
   const standings = game
@@ -32,8 +33,10 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
     : [];
   const topScore = standings[0]?.score ?? 0;
   const winners = standings.filter((t) => t.score === topScore);
+  const totalCorrect = game ? game.allTurnResults.reduce((sum, r) => sum + r.correct.length, 0) : 0;
 
   useEffect(() => {
+    if (isFreeplay) return;
     if (soundOn) playDrumroll(DRUMROLL_SECONDS);
     const toWinner = setTimeout(() => {
       setPhase('winner');
@@ -55,8 +58,7 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
     startGame(game!.config);
   }
 
-  const headerTitle =
-    phase === 'scores' ? 'Final Scores' : phase === 'winner' ? 'And the Winner Is…' : 'Drumroll…';
+  const headerTitle = isFreeplay ? 'Nice Game!' : phase === 'scores' ? 'Final Scores' : '';
 
   return (
     <div className="screen final-results-screen">
@@ -68,6 +70,7 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
       {phase === 'drumroll' && (
         <div className="center-col">
           <div className="drumroll-bar" />
+          <h2>And the Winner Is…</h2>
         </div>
       )}
 
@@ -78,15 +81,37 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
         </div>
       )}
 
-      {phase === 'scores' && (
+      {phase === 'scores' && isFreeplay && (
         <>
-          <div className="final-scores-grid">
-            {standings.map((t) => (
-              <div className={`score-tile ${t.score === topScore ? 'leader' : ''}`} key={t.id}>
-                <span>{t.name}</span>
-                <span className="score-value">{t.score}</span>
-              </div>
-            ))}
+          <div className="screen-body">
+            <div className="center-col">
+              <p className="subtitle">Words Guessed</p>
+              <h1 className="winner-name">{totalCorrect}</h1>
+            </div>
+          </div>
+
+          <div className="row">
+            <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={handlePlayAgain}>
+              Play Again
+            </button>
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => endGame('pack-select')}>
+              Home
+            </button>
+          </div>
+        </>
+      )}
+
+      {phase === 'scores' && !isFreeplay && (
+        <>
+          <div className="screen-body">
+            <div className="final-scores-grid">
+              {standings.map((t) => (
+                <div className={`score-tile ${t.score === topScore ? 'leader' : ''}`} key={t.id}>
+                  <span>{t.name}</span>
+                  <span className="score-value">{t.score}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="row">

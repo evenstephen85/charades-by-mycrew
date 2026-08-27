@@ -2,26 +2,35 @@ import { useState } from 'react';
 import { useGame } from '../state/GameContext';
 import { MenuIcon, CloseIcon } from './icons';
 
-export function InGameMenu() {
+interface InGameMenuProps {
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function InGameMenu({ onOpenChange }: InGameMenuProps = {}) {
   const { openSettings, pauseHome } = useGame();
   const [open, setOpen] = useState(false);
+
+  function setOpenState(next: boolean) {
+    setOpen(next);
+    onOpenChange?.(next);
+  }
 
   return (
     <>
       <button
         className="menu-trigger"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpenState(true)}
         aria-label="Open menu"
       >
         <MenuIcon size={22} />
       </button>
 
       {open && (
-        <div className="modal-overlay" onClick={() => setOpen(false)}>
+        <div className="modal-overlay" onClick={() => setOpenState(false)}>
           <div className="modal-card stack" onClick={(e) => e.stopPropagation()}>
             <div className="top-bar">
               <h2>Menu</h2>
-              <button className="icon-btn" onClick={() => setOpen(false)} aria-label="Close menu">
+              <button className="icon-btn" onClick={() => setOpenState(false)} aria-label="Close menu">
                 <CloseIcon size={20} />
               </button>
             </div>
@@ -29,7 +38,7 @@ export function InGameMenu() {
               <button
                 className="btn btn-block"
                 onClick={() => {
-                  setOpen(false);
+                  setOpenState(false);
                   openSettings();
                 }}
               >
@@ -38,7 +47,7 @@ export function InGameMenu() {
               <button
                 className="btn btn-block"
                 onClick={() => {
-                  setOpen(false);
+                  setOpenState(false);
                   pauseHome();
                 }}
               >

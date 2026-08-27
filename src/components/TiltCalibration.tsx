@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { captureNeutralPitch, requestMotionPermission, useCalibrationReps } from '../lib/motion';
+import { useOrientationLock } from '../lib/orientation';
 import { CheckIcon, ArrowIcon, CloseIcon } from './icons';
 
 const REPS_NEEDED = 5;
@@ -21,6 +22,11 @@ function computeThreshold(peaks: number[]): number {
 }
 
 export function TiltCalibration({ onSave, onClose }: TiltCalibrationProps) {
+  // Calibrate in the same physical orientation as real gameplay (landscape),
+  // since the sensor axis used for pitch depends on the screen's rotation
+  // angle — calibrating in a different orientation than play would measure
+  // thresholds against the wrong axis entirely.
+  useOrientationLock('landscape');
   const [step, setStep] = useState<Step>('intro');
   const [neutral, setNeutral] = useState<number | null>(null);
   const [upPeaks, setUpPeaks] = useState<number[]>([]);
@@ -76,7 +82,8 @@ export function TiltCalibration({ onSave, onClose }: TiltCalibrationProps) {
         {step === 'intro' && (
           <div className="stack">
             <p className="subtitle">
-              Hold the phone flat against your forehead like you're about to play, screen facing out.
+              Turn the phone to landscape and hold it flat against your forehead like you're about to
+              play, screen facing out — the same way you'll hold it during a real turn.
             </p>
             <button className="btn btn-primary btn-block" onClick={handleStart}>
               Start

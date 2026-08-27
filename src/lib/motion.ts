@@ -92,8 +92,8 @@ export function wrappedPitchDelta(current: number, neutral: number): number {
   return d;
 }
 
-export const DEFAULT_TILT_UP_THRESHOLD = 60;
-export const DEFAULT_TILT_DOWN_THRESHOLD = 70;
+export const DEFAULT_TILT_UP_THRESHOLD = 15;
+export const DEFAULT_TILT_DOWN_THRESHOLD = 28;
 
 const DEBOUNCE_MS = 140;
 const RESET_RATIO = 0.4;

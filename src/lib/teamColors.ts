@@ -20,6 +20,12 @@ export const TEAM_COLORS: NamedColor[] = [
   { name: 'Magenta', hex: '#e04fb8' },
   { name: 'Pink', hex: '#ff5da2' },
   { name: 'Rose', hex: '#d6435f' },
+  { name: 'Brown', hex: '#8a5a3c' },
+  { name: 'Gray', hex: '#8a94a6' },
+  { name: 'Navy', hex: '#274690' },
+  { name: 'Mint', hex: '#7fe6c0' },
+  { name: 'White', hex: '#ffffff' },
+  { name: 'Black', hex: '#000000' },
 ];
 
 export function colorForIndex(index: number): NamedColor {

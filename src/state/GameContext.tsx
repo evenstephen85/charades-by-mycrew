@@ -27,7 +27,7 @@ import { colorForIndex, nameForColor } from '../lib/teamColors';
 import { makeId, shuffle } from '../lib/util';
 
 export const MAX_TEAMS = 6;
-export const MIN_TEAMS = 2;
+export const MIN_TEAMS = 1;
 
 interface RuntimeGame {
   config: GameConfig;
@@ -115,9 +115,15 @@ function gameFromSnapshot(snapshot: ActiveGameSnapshot): RuntimeGame {
   };
 }
 
+const DEFAULT_TEAM_COUNT = 2;
+
+// Only seeds default teams for a genuinely fresh install (nothing saved yet).
+// A saved team list of length 1 is a deliberate Freeplay choice, not a state
+// to "correct" back up to the minimum on every load.
 function ensureMinTeams(teams: Team[]): Team[] {
-  const result = [...teams];
-  while (result.length < MIN_TEAMS) {
+  if (teams.length > 0) return teams;
+  const result: Team[] = [];
+  while (result.length < DEFAULT_TEAM_COUNT) {
     const color = colorForIndex(result.length);
     result.push({ id: makeId(), name: color.name, color: color.hex, score: 0, isDefaultName: true });
   }

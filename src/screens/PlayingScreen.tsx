@@ -18,10 +18,11 @@ export function PlayingScreen() {
   const [phase, setPhase] = useState<Phase>('countdown');
   const [countdown, setCountdown] = useState(3);
   const [timeLeft, setTimeLeft] = useState(game?.config.roundSeconds ?? 60);
+  const [menuOpen, setMenuOpen] = useState(false);
   const endedRef = useRef(false);
 
   useEffect(() => {
-    if (phase !== 'countdown') return;
+    if (phase !== 'countdown' || menuOpen) return;
     if (countdown <= 0) {
       if (soundOn) playGo();
       setPhase('active');
@@ -30,10 +31,10 @@ export function PlayingScreen() {
     if (soundOn) playCountdownTick();
     const t = setTimeout(() => setCountdown((c) => c - 1), 700);
     return () => clearTimeout(t);
-  }, [phase, countdown, soundOn]);
+  }, [phase, countdown, soundOn, menuOpen]);
 
   useEffect(() => {
-    if (phase !== 'active') return;
+    if (phase !== 'active' || menuOpen) return;
     if (timeLeft <= 0) {
       if (!endedRef.current) {
         endedRef.current = true;
@@ -42,24 +43,24 @@ export function PlayingScreen() {
       }
       return;
     }
-    if (timeLeft <= 5 && soundOn) playWarning();
+    if (timeLeft <= 3 && soundOn) playWarning();
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, timeLeft, soundOn]);
+  }, [phase, timeLeft, soundOn, menuOpen]);
 
   const handleCorrect = () => {
-    if (phase !== 'active') return;
+    if (phase !== 'active' || menuOpen) return;
     if (soundOn) playCorrect();
     answer('correct');
   };
   const handleSkip = () => {
-    if (phase !== 'active') return;
+    if (phase !== 'active' || menuOpen) return;
     if (soundOn) playWhoosh(0.22);
     answer('skip');
   };
 
-  const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt';
+  const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt' && !menuOpen;
   useTiltControl(
     tiltActive,
     handleCorrect,
@@ -75,10 +76,10 @@ export function PlayingScreen() {
     <div className="screen playing-screen">
       <div className="playing-top">
         <span className="correct-count">{game.currentTurn.correct.length}</span>
-        <span className={`timer-ring ${timeLeft <= 5 ? 'low' : ''}`}>
+        <span className={`timer-ring ${timeLeft <= 3 ? 'low' : ''}`}>
           {phase === 'active' ? formatTime(timeLeft) : formatTime(game.config.roundSeconds)}
         </span>
-        <InGameMenu />
+        <InGameMenu onOpenChange={setMenuOpen} />
       </div>
 
       <div className="playing-body">

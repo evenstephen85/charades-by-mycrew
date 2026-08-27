@@ -24,6 +24,7 @@ export function SettingsScreen() {
         <div style={{ width: 40 }} />
       </div>
 
+      <div className="screen-body">
       <div className="settings-columns">
         <div className="settings-column stack">
           <div className="card stack">
@@ -127,6 +128,7 @@ export function SettingsScreen() {
             </button>
           </div>
         </div>
+      </div>
       </div>
 
       <button className="btn btn-primary btn-block" onClick={closeSettings}>

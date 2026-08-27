@@ -14,6 +14,8 @@ export function GetReadyScreen() {
   if (!game) return null;
 
   const team = state.teams.find((t) => t.id === game.turnOrder[game.turnIndex]);
+  const isFreeplay = game.config.teamIds.length === 1;
+  const headerTitle = isFreeplay ? 'Freeplay!' : `${team?.name}'s Turn`;
 
   async function handleReady() {
     setPreparing(true);
@@ -27,7 +29,7 @@ export function GetReadyScreen() {
   return (
     <div className="screen get-ready-screen">
       <div className="top-bar">
-        <h2>{team?.name}'s Turn</h2>
+        <h2>{headerTitle}</h2>
         <InGameMenu />
       </div>
 
