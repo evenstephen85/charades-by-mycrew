@@ -1,13 +1,13 @@
 export interface WordPack {
   id: string;
   name: string;
-  emoji: string;
   words: string[];
 }
 
 export interface Team {
   id: string;
   name: string;
+  color: string;
   score: number;
   isDefaultName: boolean;
 }
@@ -21,7 +21,7 @@ export interface ThemeColors {
 
 export interface GameSettings {
   soundEnabled: boolean;
-  quickStart: boolean;
+  tiltThreshold: number;
   theme: ThemeColors;
 }
 
@@ -42,12 +42,34 @@ export interface TurnResult {
 
 export type InputMode = 'tilt' | 'buttons';
 
+export interface CurrentTurn {
+  teamId: string;
+  correct: string[];
+  skipped: string[];
+}
+
+export interface ActiveGameSnapshot {
+  screen: Screen;
+  config: GameConfig;
+  turnOrder: string[];
+  turnIndex: number;
+  wordQueue: string[];
+  currentTurn: CurrentTurn | null;
+  currentWord: string | null;
+  allTurnResults: TurnResult[];
+  sessionScores: Record<string, number>;
+  inputMode: InputMode;
+}
+
 export type Screen =
-  | 'welcome'
-  | 'setup'
+  | 'intro'
+  | 'pack-select'
+  | 'team-setup'
   | 'settings'
-  | 'review'
   | 'get-ready'
   | 'playing'
   | 'turn-summary'
   | 'final-results';
+
+export const GAMEPLAY_SCREENS: Screen[] = ['get-ready', 'playing', 'turn-summary', 'final-results'];
+export const PORTRAIT_SCREENS: Screen[] = ['pack-select', 'team-setup'];

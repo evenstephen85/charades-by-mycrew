@@ -1,10 +1,10 @@
-import type { GameConfig, GameSettings, Team } from '../types';
+import type { ActiveGameSnapshot, GameConfig, GameSettings, Team } from '../types';
 
 const KEYS = {
-  teams: 'charades.teams.v1',
-  settings: 'charades.settings.v1',
-  lastConfig: 'charades.lastConfig.v1',
-  disabledWords: 'charades.disabledWords.v1',
+  teams: 'charades.teams.v2',
+  settings: 'charades.settings.v2',
+  lastConfig: 'charades.lastConfig.v2',
+  activeGame: 'charades.activeGame.v1',
 } as const;
 
 export const defaultTheme = {
@@ -16,7 +16,7 @@ export const defaultTheme = {
 
 export const defaultSettings: GameSettings = {
   soundEnabled: true,
-  quickStart: false,
+  tiltThreshold: 35,
   theme: defaultTheme,
 };
 
@@ -72,21 +72,18 @@ export function saveLastConfig(config: GameConfig) {
   write(KEYS.lastConfig, config);
 }
 
-export function loadDisabledWords(): Record<string, string[]> {
-  return readRaw<Record<string, string[]>>(KEYS.disabledWords, {});
+export function loadActiveGame(): ActiveGameSnapshot | null {
+  return readRaw<ActiveGameSnapshot | null>(KEYS.activeGame, null);
 }
 
-export function saveDisabledWords(disabled: Record<string, string[]>) {
-  write(KEYS.disabledWords, disabled);
+export function saveActiveGame(snapshot: ActiveGameSnapshot) {
+  write(KEYS.activeGame, snapshot);
 }
 
-export function clearScores(teams: Team[]): Team[] {
-  const cleared = teams.map((t) => ({ ...t, score: 0 }));
-  saveTeams(cleared);
-  return cleared;
-}
-
-export function clearTeams() {
-  saveTeams([]);
-  localStorage.removeItem(KEYS.lastConfig);
+export function clearActiveGame() {
+  try {
+    localStorage.removeItem(KEYS.activeGame);
+  } catch {
+    // ignore
+  }
 }

@@ -4,7 +4,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'animals',
     name: 'Animals',
-    emoji: '🐘',
     words: [
       'Elephant', 'Giraffe', 'Penguin', 'Kangaroo', 'Octopus', 'Dolphin', 'Monkey',
       'Lion', 'Tiger', 'Zebra', 'Koala', 'Panda', 'Cheetah', 'Crocodile', 'Flamingo',
@@ -16,7 +15,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'foods',
     name: 'Foods',
-    emoji: '🍕',
     words: [
       'Pizza', 'Ice Cream', 'Spaghetti', 'Hamburger', 'Popcorn', 'Pancakes', 'Watermelon',
       'Banana', 'Hot Dog', 'Cupcake', 'Donut', 'French Fries', 'Taco', 'Sandwich',
@@ -29,7 +27,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'animals-farm',
     name: 'On the Farm',
-    emoji: '🐄',
     words: [
       'Cow', 'Pig', 'Sheep', 'Rooster', 'Goat', 'Tractor', 'Scarecrow', 'Barn',
       'Haystack', 'Farmer', 'Donkey', 'Turkey', 'Beehive', 'Windmill', 'Wheelbarrow',
@@ -39,7 +36,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'movies-shows',
     name: 'Movies & Shows',
-    emoji: '🎬',
     words: [
       'Superhero', 'Pirate', 'Dinosaur', 'Robot', 'Astronaut', 'Wizard', 'Princess',
       'Dragon', 'Ninja', 'Mermaid', 'Vampire', 'Ghost', 'Alien', 'Cowboy', 'Knight',
@@ -50,7 +46,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'sports',
     name: 'Sports & Games',
-    emoji: '⚽',
     words: [
       'Soccer', 'Basketball', 'Baseball', 'Swimming', 'Bowling', 'Skateboarding',
       'Tennis', 'Golf', 'Gymnastics', 'Karate', 'Ice Skating', 'Surfing', 'Boxing',
@@ -61,7 +56,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'jobs',
     name: 'Jobs & Helpers',
-    emoji: '👩‍🚒',
     words: [
       'Firefighter', 'Doctor', 'Teacher', 'Police Officer', 'Chef', 'Astronaut',
       'Veterinarian', 'Dentist', 'Mail Carrier', 'Pilot', 'Farmer', 'Artist',
@@ -72,7 +66,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'nature-weather',
     name: 'Nature & Weather',
-    emoji: '🌈',
     words: [
       'Rainbow', 'Thunderstorm', 'Snowman', 'Volcano', 'Waterfall', 'Tornado',
       'Sunrise', 'Rain Puddle', 'Lightning', 'Campfire', 'Mountain', 'Desert',
@@ -83,7 +76,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'school-everyday',
     name: 'School & Everyday',
-    emoji: '🎒',
     words: [
       'Brushing Teeth', 'Riding a Bike', 'Reading a Book', 'Tying Shoes', 'Homework',
       'Recess', 'School Bus', 'Backpack', 'Alarm Clock', 'Sleeping', 'Sneezing',
@@ -95,7 +87,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'holidays',
     name: 'Holidays & Celebrations',
-    emoji: '🎉',
     words: [
       'Birthday Party', 'Santa Claus', 'Easter Bunny', 'Fireworks', 'Trick or Treat',
       'Turkey Dinner', 'Christmas Tree', 'Jack-o-Lantern', 'Valentine Heart',
@@ -106,7 +97,6 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: 'transportation',
     name: 'Transportation',
-    emoji: '🚀',
     words: [
       'Airplane', 'Rocket Ship', 'Fire Truck', 'Submarine', 'Hot Air Balloon',
       'Train', 'Helicopter', 'Sailboat', 'Race Car', 'Motorcycle', 'Skateboard',
@@ -116,29 +106,17 @@ export const WORD_PACKS: WordPack[] = [
   },
 ];
 
+export const ALL_PACK_IDS = WORD_PACKS.map((p) => p.id);
+
 export function getPackById(id: string): WordPack | undefined {
   return WORD_PACKS.find((p) => p.id === id);
 }
 
-export function getAllWordsFromPacks(
-  packIds: string[],
-  disabledWords: Record<string, string[]>,
-): string[] {
+export function getAllWordsFromPacks(packIds: string[]): string[] {
   const words: string[] = [];
   for (const packId of packIds) {
     const pack = getPackById(packId);
-    if (!pack) continue;
-    const disabled = new Set(disabledWords[packId] ?? []);
-    for (const word of pack.words) {
-      if (!disabled.has(word)) words.push(word);
-    }
-  }
-  if (words.length === 0) {
-    // Everything selected got disabled — fall back to the full list so the game never stalls.
-    for (const packId of packIds) {
-      const pack = getPackById(packId);
-      if (pack) words.push(...pack.words);
-    }
+    if (pack) words.push(...pack.words);
   }
   return words;
 }

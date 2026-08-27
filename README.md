@@ -1,39 +1,53 @@
-# Charades — by MyCrew 🙋🤸
+# Charades — by MyCrew
 
 It's actually the *opposite* of charades: one player holds the phone up to
 their forehead so everyone else can see the word — they act it out while the
-phone-holder guesses. Tilt the phone down for correct, up to skip. Built
-with React + TypeScript + Vite, wrapped for iOS/Android with
-[Capacitor](https://capacitorjs.com/). Designed to be played in **landscape**.
+phone-holder guesses. Tilt up for correct, tilt down to skip. Built with
+React + TypeScript + Vite, wrapped for iOS/Android with
+[Capacitor](https://capacitorjs.com/).
 
 ## Features
 
-- Welcome screen with quick access to setup, settings, and word review
-- Themed word packs (animals, foods, movies, sports, jobs, and more) or "All Packs / Random"
-- 2–8 teams/players, with names remembered across sessions (or use defaults)
-- Persistent scores across games, with separate "clear scores" / "clear teams" resets
-- Configurable round length and number of rounds
-- Countdown, warning, and buzzer sounds — all synthesized in-browser (no audio files), toggleable
-- Automatic tilt controls on phones (using the device orientation sensor), with on-screen
-  Correct/Skip buttons as a fallback on desktop browsers or devices without a sensor
-- Landscape-locked on native iOS/Android; the website nudges players to rotate on portrait phones
-- Settings for sound, background/accent color, and a "Quick Start" shortcut
-- End-of-turn summary of correct/skipped words; scores are hidden during the final round to
-  build suspense
-- Drumroll + fanfare winner announcement at the end of the game
-- A "Review Words" screen to inspect and disable any word that isn't a fit for your group
+- A brief, non-interactive splash animation on launch — no tap required
+- Pack-select screen: tap a themed pack (or "All Packs / Random") to jump
+  straight into team setup — no multi-select step
+- Up to 6 teams, each with a name and a color from a 16-color palette;
+  default names come from the palette (Red, Orange, Amber, …)
+- Scores persist across sessions; delete teams one at a time from Settings
+- Configurable round length (15s–120s, in 5s/15s steps) and rounds per team
+- Countdown, warning, buzzer, cha-ching (correct), whoosh (skip), and
+  ta-da (winner reveal) sounds — all synthesized in-browser, toggleable
+- Automatic tilt controls on phones (device orientation sensor, orientation-
+  aware so it works correctly in landscape), with on-screen Correct/Skip
+  buttons as a fallback on desktop or devices without a sensor
+- Adjustable tilt sensitivity in Settings
+- Per-screen orientation: pack-select and team setup are portrait; gameplay
+  screens (ready/playing/summary/results) are landscape; Settings works in
+  either. Locked natively via Capacitor's Screen Orientation plugin
+- Whichever team is up gets the whole screen reskinned in their color
+  (ready page, acting, and the turn summary)
+- In-game menu (pause, Settings, Home) on every gameplay screen
+- End-of-turn summary in a 3-column layout (correct / skipped / scores) so
+  it fits without scrolling in landscape; scores are hidden on the final
+  round to build suspense
+- Full-screen winner reveal, then a grid of every team's final score
+- Games auto-save continuously; relaunching mid-game (or tapping a pack
+  while one is in progress) offers to resume or start fresh
+- No emoji-based icons anywhere — small inline SVGs for check/skip/menu/delete
 
 ## Project layout
 
 ```
 src/
   data/packs.ts          word pack content
-  lib/                   sound engine, tilt detection, storage, utilities
-  state/GameContext.tsx  app state (reducer + context)
-  screens/               one component per screen
-  components/            small shared UI pieces
-android/, ios/           native Capacitor platform projects
-resources/, design/      source icon/splash artwork
+  lib/                    sound engine, tilt detection, orientation locking,
+                          color utilities, storage, misc utilities
+  state/GameContext.tsx   app state (reducer + context), including the
+                          auto-save/resume snapshot
+  screens/                one component per screen
+  components/             shared UI pieces (icons, in-game menu, resume prompt)
+android/, ios/            native Capacitor platform projects
+resources/, design/       source icon/splash artwork
 ```
 
 ## Local development
@@ -70,10 +84,7 @@ into `main`; they're not required to publish.
 
 The same React app is wrapped into real native apps with Capacitor. The
 `android/` and `ios/` folders are already set up and committed — you don't
-need to run `cap add` again unless you delete them. Both are locked to
-**landscape orientation** (Android via `screenOrientation` in
-`AndroidManifest.xml`, iOS via `UISupportedInterfaceOrientations` in
-`Info.plist`).
+need to run `cap add` again unless you delete them.
 
 Native builds need a **root-relative** asset path (unlike the GitHub Pages
 build, which lives under a subpath), so use the `:native` build script:
@@ -128,16 +139,12 @@ Developer account to run on a physical device or submit to the App Store).
 
 ## Reviewing word content
 
-Word packs live in `src/data/packs.ts`, in plain text — no images. They were
-written with a 4–12 age range in mind, but you can review, add, or remove
-words any time from the in-app **Review Words** screen (accessible from the
-welcome screen); disabled words are stored locally in the browser/app and
-skipped during play without editing the source file. To permanently add or
-remove words, edit `src/data/packs.ts` directly.
+Word packs live in `src/data/packs.ts`, in plain text — no images, no
+in-app review screen. Edit that file directly to add, remove, or reword
+entries.
 
 ## Sounds
 
-All sound effects (countdown ticks, "go", warning, buzzer, drumroll,
-fanfare, correct/skip blips) are synthesized at runtime with the Web Audio
-API in `src/lib/sound.ts` — there are no audio files to manage, and they
-respect the in-app sound on/off setting.
+All sound effects are synthesized at runtime with the Web Audio API in
+`src/lib/sound.ts` — there are no audio files to manage, and they respect
+the in-app sound on/off setting.

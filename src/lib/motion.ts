@@ -47,17 +47,54 @@ export function detectTiltSupport(timeoutMs = 1000): Promise<boolean> {
   });
 }
 
-const TILT_THRESHOLD = 28;
-const RESET_ZONE = 12;
+function getOrientationAngle(): number {
+  if (typeof window === 'undefined') return 0;
+  const so = window.screen?.orientation;
+  if (so && typeof so.angle === 'number') return so.angle;
+  const legacy = (window as unknown as { orientation?: number }).orientation;
+  return typeof legacy === 'number' ? legacy : 0;
+}
+
+/**
+ * DeviceOrientationEvent's beta/gamma are defined relative to the device's
+ * native (usually portrait) orientation, not the current screen orientation.
+ * When the screen is rotated into landscape, the axis that corresponds to
+ * "tilt the top of the phone up/down" swaps from beta to gamma. This
+ * remaps the raw reading into a single screen-relative pitch value.
+ */
+function screenRelativePitch(beta: number, gamma: number, angle: number): number {
+  switch (angle) {
+    case 90:
+      return -gamma;
+    case -90:
+    case 270:
+      return gamma;
+    case 180:
+      return -beta;
+    default:
+      return beta;
+  }
+}
+
+const DEBOUNCE_MS = 140;
+const RESET_RATIO = 0.4;
 
 /**
  * Fires onCorrect/onSkip when the phone tilts away from its calibrated
- * starting angle (held to the forehead) past a threshold, with hysteresis
- * so a single tilt doesn't fire repeatedly.
+ * starting angle (held to the forehead) past thresholdDegrees, with
+ * hysteresis and a short debounce so sensor noise and a single quick
+ * flick don't fire it by accident. Tilting the top of the phone up
+ * fires onCorrect; tilting it down fires onSkip.
  */
-export function useTiltControl(active: boolean, onCorrect: () => void, onSkip: () => void) {
-  const neutralBeta = useRef<number | null>(null);
+export function useTiltControl(
+  active: boolean,
+  onCorrect: () => void,
+  onSkip: () => void,
+  thresholdDegrees = 35,
+) {
+  const neutral = useRef<number | null>(null);
   const triggered = useRef<'none' | 'correct' | 'skip'>('none');
+  const overSince = useRef<{ direction: 'correct' | 'skip'; at: number } | null>(null);
   const onCorrectRef = useRef(onCorrect);
   const onSkipRef = useRef(onSkip);
   onCorrectRef.current = onCorrect;
@@ -65,33 +102,52 @@ export function useTiltControl(active: boolean, onCorrect: () => void, onSkip: (
 
   useEffect(() => {
     if (!active) {
-      neutralBeta.current = null;
+      neutral.current = null;
       triggered.current = 'none';
+      overSince.current = null;
       return;
     }
 
+    const resetZone = thresholdDegrees * RESET_RATIO;
+
     const handler = (e: DeviceOrientationEvent) => {
-      if (e.beta === null || e.beta === undefined) return;
-      if (neutralBeta.current === null) {
-        neutralBeta.current = e.beta;
+      if (e.beta === null || e.beta === undefined || e.gamma === null || e.gamma === undefined) return;
+      const angle = getOrientationAngle();
+      const pitch = screenRelativePitch(e.beta, e.gamma, angle);
+
+      if (neutral.current === null) {
+        neutral.current = pitch;
         return;
       }
-      const delta = e.beta - neutralBeta.current;
+      const delta = pitch - neutral.current;
+      const now = performance.now();
 
       if (triggered.current === 'none') {
-        if (delta <= -TILT_THRESHOLD) {
-          triggered.current = 'correct';
-          onCorrectRef.current();
-        } else if (delta >= TILT_THRESHOLD) {
-          triggered.current = 'skip';
-          onSkipRef.current();
+        const direction: 'correct' | 'skip' | null =
+          delta >= thresholdDegrees ? 'correct' : delta <= -thresholdDegrees ? 'skip' : null;
+
+        if (!direction) {
+          overSince.current = null;
+          return;
         }
-      } else if (Math.abs(delta) <= RESET_ZONE) {
+
+        if (!overSince.current || overSince.current.direction !== direction) {
+          overSince.current = { direction, at: now };
+          return;
+        }
+
+        if (now - overSince.current.at >= DEBOUNCE_MS) {
+          triggered.current = direction;
+          overSince.current = null;
+          if (direction === 'correct') onCorrectRef.current();
+          else onSkipRef.current();
+        }
+      } else if (Math.abs(delta) <= resetZone) {
         triggered.current = 'none';
       }
     };
 
     window.addEventListener('deviceorientation', handler);
     return () => window.removeEventListener('deviceorientation', handler);
-  }, [active]);
+  }, [active, thresholdDegrees]);
 }

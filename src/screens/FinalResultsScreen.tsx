@@ -1,35 +1,42 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../state/GameContext';
-import { playDrumroll, playFanfare } from '../lib/sound';
-import { teamColor } from '../lib/teamColors';
+import { useOrientationLock } from '../lib/orientation';
+import { playDrumroll, playTaDa } from '../lib/sound';
+import { InGameMenu } from '../components/InGameMenu';
 
 const DRUMROLL_SECONDS = 2.4;
+const WINNER_HOLD_MS = 1800;
+
+type Phase = 'drumroll' | 'winner' | 'scores';
 
 export function FinalResultsScreen() {
-  const { state, startGame, setScreen, returnHome } = useGame();
+  useOrientationLock('landscape');
+  const { state, startGame, endGame } = useGame();
   const game = state.game;
-  const [revealed, setRevealed] = useState(false);
+  const [phase, setPhase] = useState<Phase>('drumroll');
   const soundOn = state.settings.soundEnabled;
 
   useEffect(() => {
     if (soundOn) playDrumroll(DRUMROLL_SECONDS);
-    const t = setTimeout(() => {
-      setRevealed(true);
-      if (soundOn) playFanfare();
+    const toWinner = setTimeout(() => {
+      setPhase('winner');
+      if (soundOn) playTaDa();
     }, DRUMROLL_SECONDS * 1000);
-    return () => clearTimeout(t);
+    const toScores = setTimeout(() => setPhase('scores'), DRUMROLL_SECONDS * 1000 + WINNER_HOLD_MS);
+    return () => {
+      clearTimeout(toWinner);
+      clearTimeout(toScores);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!game) return null;
 
   const standings = [...game.config.teamIds]
-    .map((id, i) => ({
+    .map((id) => ({
       id,
-      index: i,
       name: state.teams.find((t) => t.id === id)?.name ?? '?',
       score: game.sessionScores[id] ?? 0,
-      lifetime: state.teams.find((t) => t.id === id)?.score ?? 0,
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -41,61 +48,42 @@ export function FinalResultsScreen() {
   }
 
   return (
-    <div className="screen">
-      <div className="center-col">
-        {!revealed ? (
-          <>
-            <div className="drumroll">🥁</div>
-            <h2>And the winner is…</h2>
-          </>
-        ) : (
-          <>
-            <div style={{ fontSize: '3.5rem' }}>🏆🎉</div>
-            <p className="subtitle">
-              {winners.length > 1 ? "It's a tie between…" : 'The winner is…'}
-            </p>
-            <h1 className="winner-name">{winners.map((w) => w.name).join(' & ')}</h1>
-          </>
-        )}
-      </div>
+    <div className="screen final-results-screen">
+      <InGameMenu />
 
-      {revealed && (
+      {phase === 'drumroll' && (
+        <div className="center-col">
+          <div className="drumroll-bar" />
+          <h2>And the winner is…</h2>
+        </div>
+      )}
+
+      {phase === 'winner' && (
+        <div className="center-col">
+          <p className="subtitle">{winners.length > 1 ? "It's a tie between…" : 'The winner is…'}</p>
+          <h1 className="winner-name">{winners.map((w) => w.name).join(' & ')}</h1>
+        </div>
+      )}
+
+      {phase === 'scores' && (
         <>
-          <div className="card scoreboard">
-            <div className="field-label">Final Scores This Game</div>
+          <h2 style={{ textAlign: 'center' }}>Final Scores</h2>
+          <div className="final-scores-grid">
             {standings.map((t) => (
-              <div className={`score-row ${t.score === topScore ? 'leader' : ''}`} key={t.id}>
-                <span className="row" style={{ gap: 8 }}>
-                  <span className="team-swatch" style={{ background: teamColor(t.index) }} />
-                  {t.name}
-                </span>
-                <span className="score-value">{t.score}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="card scoreboard">
-            <div className="field-label">All-Time Totals</div>
-            {[...standings].sort((a, b) => b.lifetime - a.lifetime).map((t) => (
-              <div className="score-row" key={t.id}>
+              <div className={`score-tile ${t.score === topScore ? 'leader' : ''}`} key={t.id}>
                 <span>{t.name}</span>
-                <span className="score-value">{t.lifetime}</span>
+                <span className="score-value">{t.score}</span>
               </div>
             ))}
           </div>
 
           <div className="stack">
             <button className="btn btn-primary btn-block btn-lg" onClick={handlePlayAgain}>
-              🔁 Play Again
+              Play Again
             </button>
-            <div className="row">
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setScreen('setup')}>
-                New Setup
-              </button>
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={returnHome}>
-                Home
-              </button>
-            </div>
+            <button className="btn btn-ghost btn-block" onClick={() => endGame('pack-select')}>
+              Home
+            </button>
           </div>
         </>
       )}

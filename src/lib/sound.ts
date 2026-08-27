@@ -45,7 +45,12 @@ function tone(
   osc.stop(startTime + duration + 0.02);
 }
 
-function noiseBurst(startTime: number, duration: number, gain = 0.3) {
+function noiseBurst(
+  startTime: number,
+  duration: number,
+  gain = 0.3,
+  options: { filterFrom?: number; filterTo?: number; filterType?: BiquadFilterType } = {},
+) {
   const c = getCtx();
   if (!c) return;
   const bufferSize = Math.floor(c.sampleRate * duration);
@@ -56,24 +61,39 @@ function noiseBurst(startTime: number, duration: number, gain = 0.3) {
   source.buffer = buffer;
   const gainNode = c.createGain();
   gainNode.gain.setValueAtTime(gain, startTime);
-  source.connect(gainNode);
+
+  let outputNode: AudioNode = source;
+  if (options.filterFrom !== undefined && options.filterTo !== undefined) {
+    const filter = c.createBiquadFilter();
+    filter.type = options.filterType ?? 'bandpass';
+    filter.Q.value = 0.8;
+    filter.frequency.setValueAtTime(options.filterFrom, startTime);
+    filter.frequency.exponentialRampToValueAtTime(Math.max(60, options.filterTo), startTime + duration);
+    source.connect(filter);
+    outputNode = filter;
+  }
+
+  outputNode.connect(gainNode);
   gainNode.connect(c.destination);
   source.start(startTime);
 }
 
+/** Bright ascending chime + coin "ting" — plays when a guess is marked correct. */
 export function playCorrect() {
   const c = getCtx();
   if (!c) return;
   const t = c.currentTime;
-  tone(660, t, 0.08, { type: 'triangle', gain: 0.3 });
-  tone(880, t + 0.08, 0.12, { type: 'triangle', gain: 0.3 });
+  tone(1046.5, t, 0.09, { type: 'square', gain: 0.22 });
+  tone(1567.98, t + 0.07, 0.16, { type: 'square', gain: 0.22 });
+  tone(2093, t + 0.07, 0.16, { type: 'sine', gain: 0.12 });
 }
 
-export function playSkip() {
+/** Quick filtered noise sweep — plays when a word is skipped, and during the intro transition. */
+export function playWhoosh(duration = 0.32) {
   const c = getCtx();
   if (!c) return;
   const t = c.currentTime;
-  tone(300, t, 0.18, { type: 'sawtooth', gain: 0.2, sweepTo: 180 });
+  noiseBurst(t, duration, 0.35, { filterFrom: 2200, filterTo: 180, filterType: 'bandpass' });
 }
 
 export function playCountdownTick() {
@@ -117,14 +137,19 @@ export function playDrumroll(durationSeconds: number) {
   }
 }
 
-export function playFanfare() {
+/** Triumphant "ta-da" — plays the instant the winner is revealed. */
+export function playTaDa() {
   const c = getCtx();
   if (!c) return;
   const t = c.currentTime;
-  const notes = [523.25, 523.25, 523.25, 659.25, 783.99, 1046.5];
-  const gap = 0.16;
-  notes.forEach((freq, i) => {
-    tone(freq, t + i * gap, gap * 1.4, { type: 'triangle', gain: 0.28 });
-    tone(freq / 2, t + i * gap, gap * 1.4, { type: 'sine', gain: 0.15 });
-  });
+  const notes: [number, number, number][] = [
+    [523.25, 0, 0.18],
+    [659.25, 0.1, 0.18],
+    [783.99, 0.2, 0.5],
+    [1046.5, 0.24, 0.55],
+  ];
+  for (const [freq, offset, dur] of notes) {
+    tone(freq, t + offset, dur, { type: 'triangle', gain: 0.28 });
+    tone(freq / 2, t + offset, dur, { type: 'sine', gain: 0.16 });
+  }
 }
