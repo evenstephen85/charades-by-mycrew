@@ -44,18 +44,25 @@ function Root() {
     return () => window.removeEventListener('pointerdown', onFirstGesture);
   }, []);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty('--bg', state.settings.theme.background);
-    root.style.setProperty('--surface', state.settings.theme.surface);
-    root.style.setProperty('--text', state.settings.theme.text);
-    root.style.setProperty('--accent', state.settings.theme.accent);
-    root.style.setProperty('--btn-primary-text', contrastText(state.settings.theme.accent));
-  }, [state.settings.theme]);
-
   const [finalPhaseColor, setFinalPhaseColor] = useState<string | null>(null);
   const teamColor = state.screen === 'final-results' ? finalPhaseColor : currentTeamColor(state);
-  const shellStyle = teamColor ? teamThemeVars(teamColor) : undefined;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const vars = teamColor
+      ? teamThemeVars(teamColor)
+      : {
+          '--bg': state.settings.theme.background,
+          '--surface': state.settings.theme.surface,
+          '--text': state.settings.theme.text,
+        };
+    root.style.setProperty('--bg', vars['--bg']);
+    root.style.setProperty('--surface', vars['--surface']);
+    root.style.setProperty('--text', vars['--text']);
+    root.style.setProperty('--accent', state.settings.theme.accent);
+    root.style.setProperty('--btn-primary-text', contrastText(state.settings.theme.accent));
+  }, [state.settings.theme, teamColor]);
+
   const packMode: 'new-game' | 'manage' = state.draftPackChoice ? 'new-game' : 'manage';
 
   function handleIntroFinish() {
@@ -89,7 +96,7 @@ function Root() {
 
   return (
     <>
-      <div className="app-shell" style={shellStyle}>
+      <div className="app-shell">
         {screenFor(state.screen)}
       </div>
       {coldSnapshot && (

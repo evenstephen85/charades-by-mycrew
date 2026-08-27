@@ -3,7 +3,6 @@ import { useGame } from '../state/GameContext';
 import { useOrientationLock } from '../lib/orientation';
 import { playDrumroll, playTaDa } from '../lib/sound';
 import { InGameMenu } from '../components/InGameMenu';
-import { LandscapeGate } from '../components/LandscapeGate';
 
 const DRUMROLL_SECONDS = 2.4;
 const WINNER_HOLD_MS = 1800;
@@ -56,18 +55,19 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
     startGame(game!.config);
   }
 
+  const headerTitle =
+    phase === 'scores' ? 'Final Scores' : phase === 'winner' ? 'And the Winner Is…' : 'Drumroll…';
+
   return (
     <div className="screen final-results-screen">
-      <LandscapeGate />
       <div className="top-bar">
-        <h2>{phase === 'scores' ? 'Final Scores' : ''}</h2>
+        <h2>{headerTitle}</h2>
         <InGameMenu />
       </div>
 
       {phase === 'drumroll' && (
         <div className="center-col">
           <div className="drumroll-bar" />
-          <h2>And the winner is…</h2>
         </div>
       )}
 

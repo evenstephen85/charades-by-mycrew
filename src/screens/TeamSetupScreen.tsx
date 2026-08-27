@@ -8,6 +8,8 @@ import type { GameConfig } from '../types';
 
 const ROUND_MIN = 15;
 const ROUND_MAX = 120;
+const ROUNDS_MIN = 1;
+const ROUNDS_MAX = 10;
 
 interface TeamSetupScreenProps {
   mode: 'new-game' | 'manage';
@@ -48,7 +50,7 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
         >
           <ArrowIcon size={20} style={{ transform: 'rotate(180deg)' }} />
         </button>
-        <h2>{mode === 'new-game' ? 'Team Setup' : 'Manage Teams'}</h2>
+        <h2>{mode === 'new-game' ? 'Game Setup' : 'Manage Teams'}</h2>
         <div style={{ width: 40 }} />
       </div>
 
@@ -70,7 +72,13 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
               />
               {mode === 'manage' && (
                 <div className="score-adjust">
-                  <button onClick={() => adjustTeamScore(team.id, -1)} aria-label="Decrease score">−</button>
+                  <button
+                    onClick={() => adjustTeamScore(team.id, -1)}
+                    disabled={team.score <= 0}
+                    aria-label="Decrease score"
+                  >
+                    −
+                  </button>
                   <span>{team.score}</span>
                   <button onClick={() => adjustTeamScore(team.id, 1)} aria-label="Increase score">+</button>
                 </div>
@@ -103,13 +111,11 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
             </div>
           ))}
 
-          <button
-            className="team-setup-row add-team-row"
-            onClick={addTeam}
-            disabled={state.teams.length >= MAX_TEAMS}
-          >
-            + Add Team
-          </button>
+          {state.teams.length < MAX_TEAMS && (
+            <button className="team-setup-row add-team-row" onClick={addTeam}>
+              + Add Team
+            </button>
+          )}
         </div>
 
         <div className="team-setup-controls">
@@ -118,20 +124,30 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
               <div className="row-control">
                 <div className="field-label">Round Length</div>
                 <div className="dual-stepper">
-                  <button onClick={() => adjustRound(-15)}>-15</button>
-                  <button onClick={() => adjustRound(-5)}>-5</button>
+                  <button onClick={() => adjustRound(-15)} disabled={roundSeconds <= ROUND_MIN}>-15</button>
+                  <button onClick={() => adjustRound(-5)} disabled={roundSeconds <= ROUND_MIN}>-5</button>
                   <span className="value">{roundSeconds}s</span>
-                  <button onClick={() => adjustRound(5)}>+5</button>
-                  <button onClick={() => adjustRound(15)}>+15</button>
+                  <button onClick={() => adjustRound(5)} disabled={roundSeconds >= ROUND_MAX}>+5</button>
+                  <button onClick={() => adjustRound(15)} disabled={roundSeconds >= ROUND_MAX}>+15</button>
                 </div>
               </div>
 
-              <div className="row-control">
+              <div className="row-control divider">
                 <div className="field-label">Rounds per Team</div>
-                <div className="dual-stepper">
-                  <button onClick={() => setNumRounds((n) => Math.max(1, n - 1))}>−</button>
+                <div className="dual-stepper compact">
+                  <button
+                    onClick={() => setNumRounds((n) => Math.max(ROUNDS_MIN, n - 1))}
+                    disabled={numRounds <= ROUNDS_MIN}
+                  >
+                    −
+                  </button>
                   <span className="value">{numRounds}</span>
-                  <button onClick={() => setNumRounds((n) => Math.min(10, n + 1))}>+</button>
+                  <button
+                    onClick={() => setNumRounds((n) => Math.min(ROUNDS_MAX, n + 1))}
+                    disabled={numRounds >= ROUNDS_MAX}
+                  >
+                    +
+                  </button>
                 </div>
               </div>
 

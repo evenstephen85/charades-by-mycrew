@@ -1,4 +1,5 @@
 import type { ActiveGameSnapshot, GameConfig, GameSettings, Team } from '../types';
+import { DEFAULT_TILT_DOWN_THRESHOLD, DEFAULT_TILT_UP_THRESHOLD } from './motion';
 
 const KEYS = {
   teams: 'charades.teams.v2',
@@ -16,7 +17,8 @@ export const defaultTheme = {
 
 export const defaultSettings: GameSettings = {
   soundEnabled: true,
-  tiltThreshold: 35,
+  tiltUpThreshold: DEFAULT_TILT_UP_THRESHOLD,
+  tiltDownThreshold: DEFAULT_TILT_DOWN_THRESHOLD,
   theme: defaultTheme,
 };
 

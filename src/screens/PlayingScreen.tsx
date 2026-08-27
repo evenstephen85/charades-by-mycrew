@@ -5,7 +5,6 @@ import { useOrientationDebug, useTiltControl } from '../lib/motion';
 import { playBuzzer, playCorrect, playCountdownTick, playGo, playWarning, playWhoosh } from '../lib/sound';
 import { formatTime } from '../lib/util';
 import { InGameMenu } from '../components/InGameMenu';
-import { LandscapeGate } from '../components/LandscapeGate';
 import { CheckIcon, ArrowIcon } from '../components/icons';
 
 type Phase = 'countdown' | 'active';
@@ -61,14 +60,19 @@ export function PlayingScreen() {
   };
 
   const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt';
-  useTiltControl(tiltActive, handleCorrect, handleSkip, state.settings.tiltThreshold);
+  useTiltControl(
+    tiltActive,
+    handleCorrect,
+    handleSkip,
+    state.settings.tiltUpThreshold,
+    state.settings.tiltDownThreshold,
+  );
   const debug = useOrientationDebug(phase === 'active');
 
   if (!game || !game.currentTurn) return null;
 
   return (
     <div className="screen playing-screen">
-      <LandscapeGate />
       <div className="playing-top">
         <span className="correct-count">{game.currentTurn.correct.length}</span>
         <span className={`timer-ring ${timeLeft <= 5 ? 'low' : ''}`}>

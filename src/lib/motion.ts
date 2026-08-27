@@ -47,7 +47,7 @@ export function detectTiltSupport(timeoutMs = 1000): Promise<boolean> {
   });
 }
 
-function getOrientationAngle(): number {
+export function getOrientationAngle(): number {
   if (typeof window === 'undefined') return 0;
   const so = window.screen?.orientation;
   if (so && typeof so.angle === 'number') return so.angle;
@@ -62,7 +62,7 @@ function getOrientationAngle(): number {
  * "tilt the top of the phone up/down" swaps from beta to gamma. This
  * remaps the raw reading into a single screen-relative pitch value.
  */
-function screenRelativePitch(beta: number, gamma: number, angle: number): number {
+export function screenRelativePitch(beta: number, gamma: number, angle: number): number {
   switch (angle) {
     case 90:
       return -gamma;
@@ -76,12 +76,31 @@ function screenRelativePitch(beta: number, gamma: number, angle: number): number
   }
 }
 
+/**
+ * gamma (and therefore screen-relative pitch derived from it) is only
+ * defined over a 180-degree span. A phone resting near that edge (e.g.
+ * held to the forehead at close to +/-90) can have a tilt in one
+ * direction read as a jump to the opposite sign instead of a smooth
+ * change. Treating the domain as circular with a 180-degree period
+ * un-does that jump so a delta from a calibrated neutral stays smooth
+ * no matter where the neutral position falls in the range.
+ */
+export function wrappedPitchDelta(current: number, neutral: number): number {
+  let d = current - neutral;
+  if (d > 90) d -= 180;
+  if (d < -90) d += 180;
+  return d;
+}
+
+export const DEFAULT_TILT_UP_THRESHOLD = 60;
+export const DEFAULT_TILT_DOWN_THRESHOLD = 70;
+
 const DEBOUNCE_MS = 140;
 const RESET_RATIO = 0.4;
 
 /**
  * Fires onCorrect/onSkip when the phone tilts away from its calibrated
- * starting angle (held to the forehead) past thresholdDegrees, with
+ * starting angle (held to the forehead) past the up/down thresholds, with
  * hysteresis and a short debounce so sensor noise and a single quick
  * flick don't fire it by accident. Tilting the top of the phone up
  * fires onCorrect; tilting it down fires onSkip.
@@ -90,7 +109,8 @@ export function useTiltControl(
   active: boolean,
   onCorrect: () => void,
   onSkip: () => void,
-  thresholdDegrees = 35,
+  upThreshold = DEFAULT_TILT_UP_THRESHOLD,
+  downThreshold = DEFAULT_TILT_DOWN_THRESHOLD,
 ) {
   const neutral = useRef<number | null>(null);
   const triggered = useRef<'none' | 'correct' | 'skip'>('none');
@@ -108,7 +128,7 @@ export function useTiltControl(
       return;
     }
 
-    const resetZone = thresholdDegrees * RESET_RATIO;
+    const resetZone = Math.min(upThreshold, downThreshold) * RESET_RATIO;
 
     const handler = (e: DeviceOrientationEvent) => {
       if (e.beta === null || e.beta === undefined || e.gamma === null || e.gamma === undefined) return;
@@ -119,12 +139,12 @@ export function useTiltControl(
         neutral.current = pitch;
         return;
       }
-      const delta = pitch - neutral.current;
+      const delta = wrappedPitchDelta(pitch, neutral.current);
       const now = performance.now();
 
       if (triggered.current === 'none') {
         const direction: 'correct' | 'skip' | null =
-          delta >= thresholdDegrees ? 'correct' : delta <= -thresholdDegrees ? 'skip' : null;
+          delta >= upThreshold ? 'correct' : delta <= -downThreshold ? 'skip' : null;
 
         if (!direction) {
           overSince.current = null;
@@ -149,7 +169,72 @@ export function useTiltControl(
 
     window.addEventListener('deviceorientation', handler);
     return () => window.removeEventListener('deviceorientation', handler);
-  }, [active, thresholdDegrees]);
+  }, [active, upThreshold, downThreshold]);
+}
+
+/** Samples pitch briefly and averages it — used to capture a calibration neutral. */
+export function captureNeutralPitch(durationMs = 500): Promise<number | null> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) {
+      resolve(null);
+      return;
+    }
+    const samples: number[] = [];
+    const handler = (e: DeviceOrientationEvent) => {
+      if (e.beta === null || e.beta === undefined || e.gamma === null || e.gamma === undefined) return;
+      samples.push(screenRelativePitch(e.beta, e.gamma, getOrientationAngle()));
+    };
+    window.addEventListener('deviceorientation', handler);
+    setTimeout(() => {
+      window.removeEventListener('deviceorientation', handler);
+      resolve(samples.length ? samples.reduce((a, b) => a + b, 0) / samples.length : null);
+    }, durationMs);
+  });
+}
+
+const REP_START_DEG = 8;
+const REP_END_DEG = 4;
+
+/**
+ * Counts calibration reps in one direction from a captured neutral: a rep
+ * is a tilt past REP_START_DEG that returns back under REP_END_DEG, and
+ * reports the peak delta reached during that rep.
+ */
+export function useCalibrationReps(
+  active: boolean,
+  direction: 'up' | 'down',
+  neutral: number | null,
+  onRep: (peakDelta: number) => void,
+) {
+  const peak = useRef(0);
+  const over = useRef(false);
+  const onRepRef = useRef(onRep);
+  onRepRef.current = onRep;
+
+  useEffect(() => {
+    peak.current = 0;
+    over.current = false;
+    if (!active || neutral === null) return;
+
+    const handler = (e: DeviceOrientationEvent) => {
+      if (e.beta === null || e.beta === undefined || e.gamma === null || e.gamma === undefined) return;
+      const pitch = screenRelativePitch(e.beta, e.gamma, getOrientationAngle());
+      const delta = wrappedPitchDelta(pitch, neutral);
+      const raw = direction === 'up' ? delta : -delta;
+
+      if (raw >= REP_START_DEG) {
+        over.current = true;
+        if (raw > peak.current) peak.current = raw;
+      } else if (over.current && raw <= REP_END_DEG) {
+        onRepRef.current(peak.current);
+        peak.current = 0;
+        over.current = false;
+      }
+    };
+
+    window.addEventListener('deviceorientation', handler);
+    return () => window.removeEventListener('deviceorientation', handler);
+  }, [active, direction, neutral]);
 }
 
 export interface OrientationDebugReading {

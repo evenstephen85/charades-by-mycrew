@@ -4,7 +4,6 @@ import { useOrientationLock } from '../lib/orientation';
 import { detectTiltSupport, requestMotionPermission } from '../lib/motion';
 import { unlockAudio } from '../lib/sound';
 import { InGameMenu } from '../components/InGameMenu';
-import { LandscapeGate } from '../components/LandscapeGate';
 import { CheckIcon, ArrowIcon } from '../components/icons';
 
 export function GetReadyScreen() {
@@ -27,7 +26,6 @@ export function GetReadyScreen() {
 
   return (
     <div className="screen get-ready-screen">
-      <LandscapeGate />
       <div className="top-bar">
         <h2>{team?.name}'s Turn</h2>
         <InGameMenu />
@@ -35,14 +33,20 @@ export function GetReadyScreen() {
 
       <div className="center-col">
         <div className="card stack instruction-card">
-          <p className="subtitle">Give the phone to your guesser.</p>
-          <div className="instruction-row">
-            <span>Tilt up = Correct</span> <CheckIcon size={22} />
+          <p className="subtitle" style={{ textAlign: 'center' }}>Give the phone to your guesser.</p>
+          <div className="tilt-instructions">
+            <div className="tilt-instruction">
+              <span>Tilt Up = Correct</span>
+              <CheckIcon size={22} color="#3ddc84" />
+            </div>
+            <div className="tilt-instruction">
+              <span>Tilt Down = Skip</span>
+              <ArrowIcon size={22} />
+            </div>
           </div>
-          <div className="instruction-row">
-            <span>Tilt down = Skip</span> <ArrowIcon size={22} />
-          </div>
-          <p className="subtitle">Press ready and hold to forehead. They'll act, you guess.</p>
+          <p className="subtitle" style={{ textAlign: 'center' }}>
+            Press ready and hold to forehead. They'll act, you guess.
+          </p>
         </div>
       </div>
 

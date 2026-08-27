@@ -21,7 +21,8 @@ export interface ThemeColors {
 
 export interface GameSettings {
   soundEnabled: boolean;
-  tiltThreshold: number;
+  tiltUpThreshold: number;
+  tiltDownThreshold: number;
   theme: ThemeColors;
 }
 
