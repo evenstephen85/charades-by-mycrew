@@ -3,52 +3,71 @@ import { useGame } from '../state/GameContext';
 import { RulesContent, AboutContent } from '../components/InfoContent';
 import { TiltCalibration } from '../components/TiltCalibration';
 
+type Step = 'rules' | 'about' | 'tilt';
+
 /**
- * Shown once, on a genuinely fresh install: the house rules and who made this,
- * then straight into tilt calibration so the very first turn already reads the
- * player's own forehead position.
+ * Shown once, on a fresh install, one card at a time: the rules, who made this,
+ * then tilt setup. Sequenced rather than stacked so nothing has to be scrolled
+ * past to reach the button.
  *
- * Calibration is skippable. It needs a motion sensor, and on a desktop browser
- * or a phone that denies the permission there is nothing to capture -- refusing
- * to let those players past would lock them out of the game entirely.
+ * Tilt setup is skippable. It needs a motion sensor, and on a desktop browser or
+ * a phone that denies the permission there is nothing to capture -- refusing to
+ * let those players past would lock them out of the game entirely.
  */
 export function WelcomeScreen() {
-  const { updateSettings } = useGame();
-  const [calibrating, setCalibrating] = useState(false);
-
-  function finish(tilt?: { up: number; down: number; neutral: number }) {
-    updateSettings({
-      onboarded: true,
-      ...(tilt
-        ? { tiltUpThreshold: tilt.up, tiltDownThreshold: tilt.down, tiltNeutral: tilt.neutral }
-        : {}),
-    });
-  }
+  const { state, updateSettings } = useGame();
+  const [step, setStep] = useState<Step>('rules');
+  const { settings } = state;
 
   return (
     <div className="screen welcome-screen">
       <h1 className="welcome-title">CHARADES</h1>
 
-      <div className="screen-body welcome-body">
-        <div className="card stack">
-          <div className="field-label">How to Play</div>
-          <RulesContent />
-        </div>
+      {step === 'rules' && (
+        <>
+          <div className="screen-body welcome-body">
+            <div className="card stack">
+              <div className="field-label">How to Play</div>
+              <RulesContent />
+            </div>
+          </div>
+          <button className="btn btn-primary btn-block btn-lg" onClick={() => setStep('about')}>
+            Next
+          </button>
+        </>
+      )}
 
-        <div className="card stack">
-          <div className="field-label">About MyCrew Gaming</div>
-          <AboutContent />
-        </div>
-      </div>
+      {step === 'about' && (
+        <>
+          <div className="screen-body welcome-body">
+            <div className="card stack">
+              <div className="field-label">About MyCrew Gaming</div>
+              <AboutContent />
+            </div>
+          </div>
+          <button className="btn btn-primary btn-block btn-lg" onClick={() => setStep('tilt')}>
+            Next
+          </button>
+        </>
+      )}
 
-      <button className="btn btn-primary btn-block btn-lg" onClick={() => setCalibrating(true)}>
-        Set Up Tilt Controls
-      </button>
-
-      {calibrating && (
+      {step === 'tilt' && (
         <TiltCalibration
-          onSave={(up, down, neutral) => finish({ up, down, neutral })}
-          onClose={() => finish()}
+          values={{
+            up: settings.tiltUpThreshold,
+            down: settings.tiltDownThreshold,
+            neutral: settings.tiltNeutral,
+            preferButtons: settings.preferButtons,
+          }}
+          onChange={(v) =>
+            updateSettings({
+              ...(v.up !== undefined ? { tiltUpThreshold: v.up } : {}),
+              ...(v.down !== undefined ? { tiltDownThreshold: v.down } : {}),
+              ...(v.neutral !== undefined ? { tiltNeutral: v.neutral } : {}),
+              ...(v.preferButtons !== undefined ? { preferButtons: v.preferButtons } : {}),
+            })
+          }
+          onClose={() => updateSettings({ onboarded: true })}
         />
       )}
     </div>

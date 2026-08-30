@@ -88,8 +88,12 @@ export function SettingsScreen() {
             Manage Teams
           </button>
 
+          <button className="btn setting-cell" onClick={() => setScreen('custom-packs')}>
+            Custom Packs
+          </button>
+
           <button className="btn setting-cell" onClick={() => setCalibrating(true)}>
-            Calibrate Tilt
+            Tilt Controls
           </button>
 
           <button className="btn setting-cell" onClick={() => setInfo('rules')}>
@@ -166,10 +170,20 @@ export function SettingsScreen() {
 
       {calibrating && (
         <TiltCalibration
-          onSave={(up, down, neutral) => {
-            updateSettings({ tiltUpThreshold: up, tiltDownThreshold: down, tiltNeutral: neutral });
-            setCalibrating(false);
+          values={{
+            up: settings.tiltUpThreshold,
+            down: settings.tiltDownThreshold,
+            neutral: settings.tiltNeutral,
+            preferButtons: settings.preferButtons,
           }}
+          onChange={(v) =>
+            updateSettings({
+              ...(v.up !== undefined ? { tiltUpThreshold: v.up } : {}),
+              ...(v.down !== undefined ? { tiltDownThreshold: v.down } : {}),
+              ...(v.neutral !== undefined ? { tiltNeutral: v.neutral } : {}),
+              ...(v.preferButtons !== undefined ? { preferButtons: v.preferButtons } : {}),
+            })
+          }
           onClose={() => setCalibrating(false)}
         />
       )}

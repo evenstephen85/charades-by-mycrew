@@ -122,6 +122,23 @@ export function playBoop() {
   tone(780, t + 0.02, 0.05, { type: 'sine', gain: 0.05 });
 }
 
+/** Calibration feedback, pitched to match the gesture: up is high, down is low.
+ *  The phone is against a forehead during calibration, so sound is the only
+ *  channel that actually reaches the player. */
+export function playTiltUpTone() {
+  const c = activeCtx();
+  if (!c) return;
+  const t = at(c);
+  tone(880, t, 0.13, { type: 'triangle', gain: 0.22, sweepTo: 1174.66 });
+}
+
+export function playTiltDownTone() {
+  const c = activeCtx();
+  if (!c) return;
+  const t = at(c);
+  tone(440, t, 0.16, { type: 'triangle', gain: 0.22, sweepTo: 294 });
+}
+
 export function playCountdownTick() {
   const c = activeCtx();
   if (!c) return;

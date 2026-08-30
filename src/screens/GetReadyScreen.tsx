@@ -18,6 +18,12 @@ export function GetReadyScreen() {
   async function handleReady() {
     setPreparing(true);
     unlockAudio();
+    // An explicit preference for buttons skips the sensor probe entirely.
+    if (state.settings.preferButtons) {
+      setInputMode('buttons');
+      beginTurn();
+      return;
+    }
     const granted = await requestMotionPermission();
     const supported = granted && (await detectTiltSupport());
     setInputMode(supported ? 'tilt' : 'buttons');

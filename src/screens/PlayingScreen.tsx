@@ -85,7 +85,9 @@ export function PlayingScreen() {
       <div className="playing-top">
         <span className="correct-count">{game.currentTurn.correct.length}</span>
         <span className={`timer-ring ${timeLeft <= 3 ? 'low' : ''}`}>
-          {phase === 'active' ? formatTime(timeLeft) : formatTime(game.config.roundSeconds)}
+          {/* Always the time actually left: showing the full round during the
+              count-in made a resumed turn look like it had reset. */}
+          {formatTime(timeLeft)}
         </span>
         <InGameMenu />
       </div>

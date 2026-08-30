@@ -9,6 +9,7 @@ import { ResumePrompt, FinishedGamePrompt } from './components/ResumePrompt';
 import { IntroScreen } from './screens/IntroScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { PackSelectScreen } from './screens/PackSelectScreen';
+import { CustomPacksScreen } from './screens/CustomPacksScreen';
 import { TeamSetupScreen } from './screens/TeamSetupScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { GetReadyScreen } from './screens/GetReadyScreen';
@@ -108,6 +109,8 @@ function Root() {
         return <WelcomeScreen />;
       case 'pack-select':
         return <PackSelectScreen />;
+      case 'custom-packs':
+        return <CustomPacksScreen />;
       case 'team-setup':
         return <TeamSetupScreen mode={packMode} />;
       case 'settings':

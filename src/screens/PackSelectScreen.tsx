@@ -7,7 +7,10 @@ import { unlockAudio } from '../lib/sound';
 import type { PackChoice } from '../state/GameContext';
 
 export function PackSelectScreen() {
-  const { state, openSettings, choosePack, discardAndChoosePack, resumePausedGame } = useGame();
+  const { state, setScreen, openSettings, choosePack, discardAndChoosePack, resumePausedGame } = useGame();
+  // A pack with no words in it would deal an empty turn, so it isn't offered.
+  const playableCustom = state.customPacks.filter((p) => p.words.length > 0);
+  const allPackIds = [...ALL_PACK_IDS, ...playableCustom.map((p) => p.id)];
   const [pendingChoice, setPendingChoice] = useState<PackChoice | null>(null);
 
   function handlePick(choice: PackChoice) {
@@ -37,7 +40,7 @@ export function PackSelectScreen() {
       <div className="pack-list">
         <button
           className="pack-button"
-          onClick={() => handlePick({ selectedPackIds: ALL_PACK_IDS, useAllPacks: true })}
+          onClick={() => handlePick({ selectedPackIds: allPackIds, useAllPacks: true })}
         >
           All Packs / Random
         </button>
@@ -50,6 +53,18 @@ export function PackSelectScreen() {
             {pack.name}
           </button>
         ))}
+        {playableCustom.map((pack) => (
+          <button
+            key={pack.id}
+            className="pack-button pack-button-custom"
+            onClick={() => handlePick({ selectedPackIds: [pack.id], useAllPacks: false })}
+          >
+            {pack.name}
+          </button>
+        ))}
+        <button className="pack-button pack-button-new" onClick={() => setScreen('custom-packs')}>
+          + Your Own Pack
+        </button>
       </div>
 
       {pendingChoice && (

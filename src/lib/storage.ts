@@ -1,4 +1,4 @@
-import type { ActiveGameSnapshot, GameConfig, GameSettings, Team } from '../types';
+import type { ActiveGameSnapshot, CustomPack, GameConfig, GameSettings, Team } from '../types';
 import { DEFAULT_TILT_DOWN_THRESHOLD, DEFAULT_TILT_UP_THRESHOLD } from './motion';
 
 const KEYS = {
@@ -6,6 +6,7 @@ const KEYS = {
   settings: 'charades.settings.v2',
   lastConfig: 'charades.lastConfig.v2',
   activeGame: 'charades.activeGame.v1',
+  customPacks: 'charades.customPacks.v1',
 } as const;
 
 export const defaultTheme = {
@@ -20,6 +21,7 @@ export const defaultSettings: GameSettings = {
   tiltUpThreshold: DEFAULT_TILT_UP_THRESHOLD,
   tiltDownThreshold: DEFAULT_TILT_DOWN_THRESHOLD,
   tiltNeutral: null,
+  preferButtons: false,
   onboarded: false,
   theme: defaultTheme,
 };
@@ -90,4 +92,12 @@ export function clearActiveGame() {
   } catch {
     // ignore
   }
+}
+
+export function loadCustomPacks(): CustomPack[] {
+  return readRaw<CustomPack[]>(KEYS.customPacks, []);
+}
+
+export function saveCustomPacks(packs: CustomPack[]) {
+  write(KEYS.customPacks, packs);
 }

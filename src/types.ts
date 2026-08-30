@@ -4,6 +4,14 @@ export interface WordPack {
   words: string[];
 }
 
+/** A pack the player wrote themselves. Stored separately from the built-ins so
+ *  a content update can never clobber someone's own words. */
+export interface CustomPack {
+  id: string;
+  name: string;
+  words: string[];
+}
+
 export interface Team {
   id: string;
   name: string;
@@ -26,6 +34,8 @@ export interface GameSettings {
   /** Screen-relative pitch of the phone held against the forehead, captured
    *  during calibration. Null until the player has calibrated. */
   tiltNeutral: number | null;
+  /** Score with on-screen buttons instead of tilting, even where a sensor exists. */
+  preferButtons: boolean;
   /** False until the welcome screen (rules, about, calibration) has been seen. */
   onboarded: boolean;
   theme: ThemeColors;
@@ -64,6 +74,8 @@ export interface ActiveGameSnapshot {
   currentWord: string | null;
   allTurnResults: TurnResult[];
   sessionScores: Record<string, number>;
+  /** Every word dealt so far this game, so none is asked twice. */
+  usedWords: string[];
   inputMode: InputMode;
   /** Seconds left in the turn that was in progress, so leaving mid-round and
    *  coming back resumes the same turn rather than restarting it. */
@@ -78,6 +90,7 @@ export type Screen =
   | 'welcome'
   | 'pack-select'
   | 'team-setup'
+  | 'custom-packs'
   | 'settings'
   | 'get-ready'
   | 'playing'

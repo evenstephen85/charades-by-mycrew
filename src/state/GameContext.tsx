@@ -6,6 +6,7 @@ import type {
   GameConfig,
   GameSettings,
   InputMode,
+  CustomPack,
   Screen,
   Team,
   TurnResult,
@@ -21,8 +22,10 @@ import {
   saveLastConfig,
   saveSettings,
   saveTeams,
+  loadCustomPacks,
+  saveCustomPacks,
 } from '../lib/storage';
-import { getAllWordsFromPacks } from '../data/packs';
+import { ALL_PACK_IDS, getAllWordsFromPacks } from '../data/packs';
 import { TEAM_COLORS, colorForIndex, nameForColor } from '../lib/teamColors';
 import { makeId, shuffle } from '../lib/util';
 
@@ -38,6 +41,7 @@ interface RuntimeGame {
   currentWord: string | null;
   allTurnResults: TurnResult[];
   sessionScores: Record<string, number>;
+  usedWords: string[];
   inputMode: InputMode;
   pausedScreen: Screen;
   timeLeft: number | null;
@@ -56,6 +60,42 @@ interface State {
   settings: GameSettings;
   game: RuntimeGame | null;
   draftPackChoice: PackChoice | null;
+  customPacks: CustomPack[];
+}
+
+/** Built-in packs and the player's own resolve through the same call. */
+function wordsFor(packIds: string[], customPacks: CustomPack[]): string[] {
+  const words = getAllWordsFromPacks(packIds);
+  for (const id of packIds) {
+    const custom = customPacks.find((p) => p.id === id);
+    if (custom) words.push(...custom.words);
+  }
+  return words;
+}
+
+/**
+ * A word is never asked twice in the same game. The chosen packs come first;
+ * once they're used up the draw widens to every other pack rather than repeating
+ * (a long game on one small pack would otherwise start looping). Only if
+ * literally everything has been used does it start over -- running dry mid-turn
+ * would be worse than a repeat.
+ */
+function refillQueue(
+  packIds: string[],
+  customPacks: CustomPack[],
+  usedWords: string[],
+): string[] {
+  const used = new Set(usedWords.map((w) => w.toLowerCase()));
+  const unused = (list: string[]) => list.filter((w) => !used.has(w.toLowerCase()));
+
+  const fromChosen = unused(wordsFor(packIds, customPacks));
+  if (fromChosen.length > 0) return shuffle(fromChosen);
+
+  const everyId = [...ALL_PACK_IDS, ...customPacks.map((p) => p.id)];
+  const fromEverywhere = unused(wordsFor(everyId, customPacks));
+  if (fromEverywhere.length > 0) return shuffle(fromEverywhere);
+
+  return shuffle(wordsFor(packIds, customPacks));
 }
 
 type Action =
@@ -81,6 +121,11 @@ type Action =
   | { type: 'CLEAR_SCORES' }
   | { type: 'MARK_FINALE_REVEALED' }
   | { type: 'SET_TIME_LEFT'; seconds: number | null }
+  | { type: 'CREATE_CUSTOM_PACK'; name: string }
+  | { type: 'RENAME_CUSTOM_PACK'; id: string; name: string }
+  | { type: 'ADD_CUSTOM_WORD'; id: string; word: string }
+  | { type: 'REMOVE_CUSTOM_WORD'; id: string; index: number }
+  | { type: 'DELETE_CUSTOM_PACK'; id: string }
   | { type: 'DISCARD_AND_CHOOSE_PACK'; choice: PackChoice }
   | { type: 'LOAD_SNAPSHOT'; snapshot: ActiveGameSnapshot };
 
@@ -101,6 +146,7 @@ function snapshotFromGame(game: RuntimeGame, screen: Screen): ActiveGameSnapshot
     currentWord: game.currentWord,
     allTurnResults: game.allTurnResults,
     sessionScores: game.sessionScores,
+    usedWords: game.usedWords,
     inputMode: game.inputMode,
     timeLeft: game.timeLeft,
     finaleRevealed: game.finaleRevealed,
@@ -117,6 +163,7 @@ function gameFromSnapshot(snapshot: ActiveGameSnapshot): RuntimeGame {
     currentWord: snapshot.currentWord,
     allTurnResults: snapshot.allTurnResults,
     sessionScores: snapshot.sessionScores,
+    usedWords: snapshot.usedWords ?? [],
     inputMode: snapshot.inputMode,
     pausedScreen: snapshot.screen,
     timeLeft: snapshot.timeLeft ?? null,
@@ -158,6 +205,7 @@ function initialState(): State {
     settings: loadSettings(),
     game: null,
     draftPackChoice: null,
+    customPacks: loadCustomPacks(),
   };
 }
 
@@ -245,7 +293,7 @@ function reducer(state: State, action: Action): State {
 
     case 'START_GAME': {
       const turnOrder = buildTurnOrder(action.config.teamIds, action.config.numRounds);
-      const wordQueue = shuffle(getAllWordsFromPacks(action.config.selectedPackIds));
+      const wordQueue = refillQueue(action.config.selectedPackIds, state.customPacks, []);
       const sessionScores: Record<string, number> = {};
       for (const id of action.config.teamIds) sessionScores[id] = 0;
       return {
@@ -262,6 +310,7 @@ function reducer(state: State, action: Action): State {
           currentWord: null,
           allTurnResults: [],
           sessionScores,
+          usedWords: [],
           inputMode: 'buttons',
           pausedScreen: 'get-ready',
           timeLeft: null,
@@ -280,7 +329,7 @@ function reducer(state: State, action: Action): State {
       const teamId = state.game.turnOrder[state.game.turnIndex];
       let queue = state.game.wordQueue;
       if (queue.length === 0) {
-        queue = shuffle(getAllWordsFromPacks(state.game.config.selectedPackIds));
+        queue = refillQueue(state.game.config.selectedPackIds, state.customPacks, state.game.usedWords);
       }
       const [currentWord, ...rest] = queue;
       return {
@@ -290,6 +339,7 @@ function reducer(state: State, action: Action): State {
           ...state.game,
           wordQueue: rest,
           currentWord: currentWord ?? null,
+          usedWords: currentWord ? [...state.game.usedWords, currentWord] : state.game.usedWords,
           currentTurn: { teamId, correct: [], skipped: [] },
           timeLeft: state.game.config.roundSeconds,
         },
@@ -312,7 +362,7 @@ function reducer(state: State, action: Action): State {
       };
       let queue = state.game.wordQueue;
       if (queue.length === 0) {
-        queue = shuffle(getAllWordsFromPacks(state.game.config.selectedPackIds));
+        queue = refillQueue(state.game.config.selectedPackIds, state.customPacks, state.game.usedWords);
       }
       const [nextWord, ...rest] = queue;
       return {
@@ -322,6 +372,7 @@ function reducer(state: State, action: Action): State {
           currentTurn: updatedTurn,
           wordQueue: rest,
           currentWord: nextWord ?? null,
+          usedWords: nextWord ? [...state.game.usedWords, nextWord] : state.game.usedWords,
         },
       };
     }
@@ -389,6 +440,44 @@ function reducer(state: State, action: Action): State {
     case 'END_GAME':
       return { ...state, screen: action.nextScreen, game: null, draftPackChoice: null };
 
+    case 'CREATE_CUSTOM_PACK': {
+      const pack: CustomPack = { id: `custom-${makeId()}`, name: action.name.trim() || 'My Pack', words: [] };
+      return { ...state, customPacks: [...state.customPacks, pack] };
+    }
+
+    case 'RENAME_CUSTOM_PACK':
+      return {
+        ...state,
+        customPacks: state.customPacks.map((p) =>
+          p.id === action.id ? { ...p, name: action.name } : p,
+        ),
+      };
+
+    case 'ADD_CUSTOM_WORD': {
+      const word = action.word.trim();
+      if (!word) return state;
+      return {
+        ...state,
+        customPacks: state.customPacks.map((p) =>
+          // Ignore a word the pack already has, so duplicates can't stack up.
+          p.id === action.id && !p.words.some((w) => w.toLowerCase() === word.toLowerCase())
+            ? { ...p, words: [...p.words, word] }
+            : p,
+        ),
+      };
+    }
+
+    case 'REMOVE_CUSTOM_WORD':
+      return {
+        ...state,
+        customPacks: state.customPacks.map((p) =>
+          p.id === action.id ? { ...p, words: p.words.filter((_, i) => i !== action.index) } : p,
+        ),
+      };
+
+    case 'DELETE_CUSTOM_PACK':
+      return { ...state, customPacks: state.customPacks.filter((p) => p.id !== action.id) };
+
     case 'CLEAR_SCORES':
       return { ...state, teams: zeroScores(state.teams) };
 
@@ -444,6 +533,11 @@ interface GameContextValue {
   clearScores: () => void;
   markFinaleRevealed: () => void;
   setTimeLeft: (seconds: number | null) => void;
+  createCustomPack: (name: string) => void;
+  renameCustomPack: (id: string, name: string) => void;
+  addCustomWord: (id: string, word: string) => void;
+  removeCustomWord: (id: string, index: number) => void;
+  deleteCustomPack: (id: string) => void;
   loadSnapshot: (snapshot: ActiveGameSnapshot) => void;
 }
 
@@ -459,6 +553,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveTeams(state.teams);
   }, [state.teams]);
+
+  useEffect(() => {
+    saveCustomPacks(state.customPacks);
+  }, [state.customPacks]);
 
   useEffect(() => {
     // Note: state.game starts out null on every cold boot even when a saved
@@ -509,6 +607,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       clearScores: () => dispatch({ type: 'CLEAR_SCORES' }),
       markFinaleRevealed: () => dispatch({ type: 'MARK_FINALE_REVEALED' }),
       setTimeLeft: (seconds) => dispatch({ type: 'SET_TIME_LEFT', seconds }),
+      createCustomPack: (name) => dispatch({ type: 'CREATE_CUSTOM_PACK', name }),
+      renameCustomPack: (id, name) => dispatch({ type: 'RENAME_CUSTOM_PACK', id, name }),
+      addCustomWord: (id, word) => dispatch({ type: 'ADD_CUSTOM_WORD', id, word }),
+      removeCustomWord: (id, index) => dispatch({ type: 'REMOVE_CUSTOM_WORD', id, index }),
+      deleteCustomPack: (id) => dispatch({ type: 'DELETE_CUSTOM_PACK', id }),
       loadSnapshot: (snapshot) => dispatch({ type: 'LOAD_SNAPSHOT', snapshot }),
     }),
     [state],

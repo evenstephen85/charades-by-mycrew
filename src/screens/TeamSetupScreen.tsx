@@ -3,7 +3,7 @@ import { useGame, MAX_TEAMS, MIN_TEAMS } from '../state/GameContext';
 import { loadLastConfig } from '../lib/storage';
 import { TEAM_COLORS } from '../lib/teamColors';
 import { contrastText } from '../lib/color';
-import { TrashIcon, ArrowIcon } from '../components/icons';
+import { TrashIcon, ArrowIcon, CloseIcon } from '../components/icons';
 import type { GameConfig } from '../types';
 
 const ROUND_MIN = 15;
@@ -47,6 +47,8 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
   };
 
   const takenColors = new Set(state.teams.map((t) => t.color.toLowerCase()));
+  const currentPickerColor =
+    state.teams.find((t) => t.id === colorPickerFor)?.color.toLowerCase() ?? '';
 
   return (
     <div className="screen team-setup-screen">
@@ -115,28 +117,6 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
                 <TrashIcon size={20} />
               </button>
 
-              {colorPickerFor === team.id && (
-                <div className="color-popover">
-                  {/* Colours already worn by another team aren't offered, so two
-                      teams can never end up the same colour. */}
-                  {TEAM_COLORS.filter(
-                    (c) =>
-                      c.hex.toLowerCase() === team.color.toLowerCase() ||
-                      !takenColors.has(c.hex.toLowerCase()),
-                  ).map((c) => (
-                    <button
-                      key={c.hex}
-                      className="color-popover-swatch"
-                      style={{ background: c.hex }}
-                      aria-label={c.name}
-                      onClick={() => {
-                        recolorTeam(team.id, c.hex);
-                        setColorPickerFor(null);
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           ))}
 
@@ -196,6 +176,39 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
         <button className="btn btn-primary btn-block" onClick={() => setScreen('settings')}>
           Done
         </button>
+      )}
+
+      {colorPickerFor && (
+        <div className="modal-overlay" onClick={() => setColorPickerFor(null)}>
+          <div className="modal-card stack" onClick={(e) => e.stopPropagation()}>
+            <div className="top-bar">
+              <h2>Team Color</h2>
+              <button className="icon-btn" onClick={() => setColorPickerFor(null)} aria-label="Close">
+                <CloseIcon size={20} />
+              </button>
+            </div>
+            <div className="color-swatches">
+              {/* Colours already worn by another team aren't offered, so two
+                  teams can never end up the same colour. */}
+              {TEAM_COLORS.filter(
+                (c) =>
+                  c.hex.toLowerCase() === currentPickerColor ||
+                  !takenColors.has(c.hex.toLowerCase()),
+              ).map((c) => (
+                <button
+                  key={c.hex}
+                  className={`color-swatch-btn ${c.hex.toLowerCase() === currentPickerColor ? 'selected' : ''}`}
+                  style={{ background: c.hex }}
+                  aria-label={c.name}
+                  onClick={() => {
+                    recolorTeam(colorPickerFor, c.hex);
+                    setColorPickerFor(null);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
