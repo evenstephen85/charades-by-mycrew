@@ -5,6 +5,7 @@ import { useTiltControl } from '../lib/motion';
 import { playBuzzer, playCorrect, playCountdownTick, playGo, playWarning, playWhoosh } from '../lib/sound';
 import { formatTime } from '../lib/util';
 import { InGameMenu } from '../components/InGameMenu';
+import { OrientationGate } from '../components/OrientationGate';
 import { CheckIcon, ArrowIcon } from '../components/icons';
 
 type Phase = 'countdown' | 'active';
@@ -80,6 +81,7 @@ export function PlayingScreen() {
 
   return (
     <div className="screen playing-screen">
+      <OrientationGate need="landscape" />
       <div className="playing-top">
         <span className="correct-count">{game.currentTurn.correct.length}</span>
         <span className={`timer-ring ${timeLeft <= 3 ? 'low' : ''}`}>

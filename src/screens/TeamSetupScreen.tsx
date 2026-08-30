@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useGame, MAX_TEAMS, MIN_TEAMS } from '../state/GameContext';
 import { loadLastConfig } from '../lib/storage';
-import { useOrientationLock } from '../lib/orientation';
 import { TEAM_COLORS } from '../lib/teamColors';
 import { contrastText } from '../lib/color';
 import { TrashIcon, ArrowIcon } from '../components/icons';
 import type { GameConfig } from '../types';
-import { OrientationGate } from '../components/OrientationGate';
 
 const ROUND_MIN = 15;
 const ROUND_MAX = 120;
@@ -18,7 +16,6 @@ interface TeamSetupScreenProps {
 }
 
 export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
-  useOrientationLock('portrait');
   const { state, setScreen, addTeam, removeTeam, renameTeam, recolorTeam, adjustTeamScore, startGame } = useGame();
   const lastConfig = loadLastConfig();
 
@@ -52,8 +49,7 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
   const takenColors = new Set(state.teams.map((t) => t.color.toLowerCase()));
 
   return (
-    <div className="screen team-setup-screen portrait-only">
-      <OrientationGate need="portrait" />
+    <div className="screen team-setup-screen">
       <div className="top-bar">
         <button
           className="icon-btn"

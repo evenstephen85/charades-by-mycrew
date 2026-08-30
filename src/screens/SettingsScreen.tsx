@@ -7,14 +7,17 @@ import { TEAM_COLORS } from '../lib/teamColors';
 import { playBoop } from '../lib/sound';
 import { ArrowIcon, CloseIcon, HomeIcon } from '../components/icons';
 import { TiltCalibration } from '../components/TiltCalibration';
+import { RulesContent, AboutContent } from '../components/InfoContent';
 
 type PickerTarget = 'background' | 'accent' | null;
+type InfoTarget = 'rules' | 'about' | null;
 
 export function SettingsScreen() {
   const { state, updateSettings, setScreen, closeSettings, pauseHome } = useGame();
   const { settings } = state;
   const [picker, setPicker] = useState<PickerTarget>(null);
   const [calibrating, setCalibrating] = useState(false);
+  const [info, setInfo] = useState<InfoTarget>(null);
 
   function applyColor(hex: string) {
     if (picker === 'background') {
@@ -89,6 +92,14 @@ export function SettingsScreen() {
             Calibrate Tilt
           </button>
 
+          <button className="btn setting-cell" onClick={() => setInfo('rules')}>
+            Rules
+          </button>
+
+          <button className="btn setting-cell" onClick={() => setInfo('about')}>
+            About
+          </button>
+
           {/* Full width across whatever column count the grid is using. */}
           {state.game && (
             <button className="btn setting-cell setting-home" onClick={pauseHome}>
@@ -135,6 +146,20 @@ export function SettingsScreen() {
                 onChange={(e) => applyColor(e.target.value)}
               />
             </label>
+          </div>
+        </div>
+      )}
+
+      {info && (
+        <div className="modal-overlay" onClick={() => setInfo(null)}>
+          <div className="modal-card stack info-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="top-bar">
+              <h2>{info === 'rules' ? 'How to Play' : 'About MyCrew Gaming'}</h2>
+              <button className="icon-btn" onClick={() => setInfo(null)} aria-label="Close">
+                <CloseIcon size={20} />
+              </button>
+            </div>
+            <div className="info-scroll">{info === 'rules' ? <RulesContent /> : <AboutContent />}</div>
           </div>
         </div>
       )}

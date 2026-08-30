@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../state/GameContext';
-import { useOrientationLock } from '../lib/orientation';
 import { playDrumroll, playTaDa } from '../lib/sound';
 import { contrastText } from '../lib/color';
 import { InGameMenu } from '../components/InGameMenu';
@@ -15,7 +14,6 @@ interface FinalResultsScreenProps {
 }
 
 export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
-  useOrientationLock('landscape');
   const { state, startGame, endGame, markFinaleRevealed } = useGame();
   const game = state.game;
   const isFreeplay = !!game && game.config.teamIds.length === 1;

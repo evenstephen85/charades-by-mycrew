@@ -9,6 +9,23 @@ function getCtx(): AudioContext | null {
   return ctx;
 }
 
+/**
+ * A context created before the first user gesture comes back suspended, and a
+ * suspended context's clock is frozen at 0. Anything scheduled against that
+ * frozen clock is already in the past by the time the browser resumes it, so it
+ * is thrown away silently -- which is why every sound went missing. Nothing is
+ * scheduled unless the clock is genuinely running.
+ */
+function activeCtx(): AudioContext | null {
+  const c = getCtx();
+  return c && c.state === 'running' ? c : null;
+}
+
+/** A hair of lead time so a note is never scheduled fractionally in the past. */
+function at(c: AudioContext): number {
+  return c.currentTime + 0.02;
+}
+
 /** Must be called from a user-gesture handler (tap) to unlock audio on iOS/Safari. */
 export function unlockAudio() {
   const c = getCtx();
@@ -80,9 +97,9 @@ function noiseBurst(
 
 /** Bright ascending chime + coin "ting" — plays when a guess is marked correct. */
 export function playCorrect() {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  const t = c.currentTime;
+  const t = at(c);
   tone(1046.5, t, 0.09, { type: 'square', gain: 0.22 });
   tone(1567.98, t + 0.07, 0.16, { type: 'square', gain: 0.22 });
   tone(2093, t + 0.07, 0.16, { type: 'sine', gain: 0.12 });
@@ -90,55 +107,55 @@ export function playCorrect() {
 
 /** Quick filtered noise sweep — plays when a word is skipped, and during the intro transition. */
 export function playWhoosh(duration = 0.32) {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  const t = c.currentTime;
+  const t = at(c);
   noiseBurst(t, duration, 0.35, { filterFrom: 2200, filterTo: 180, filterType: 'bandpass' });
 }
 
 /** Soft UI click — plays on any tap while sound is on. */
 export function playBoop() {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  const t = c.currentTime;
+  const t = at(c);
   tone(520, t, 0.05, { type: 'sine', gain: 0.09 });
   tone(780, t + 0.02, 0.05, { type: 'sine', gain: 0.05 });
 }
 
 export function playCountdownTick() {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  tone(880, c.currentTime, 0.08, { type: 'square', gain: 0.15 });
+  tone(880, at(c), 0.08, { type: 'square', gain: 0.15 });
 }
 
 export function playGo() {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  const t = c.currentTime;
+  const t = at(c);
   tone(523.25, t, 0.12, { type: 'triangle', gain: 0.3 });
   tone(783.99, t + 0.12, 0.22, { type: 'triangle', gain: 0.3 });
 }
 
 export function playWarning() {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  const t = c.currentTime;
+  const t = at(c);
   tone(440, t, 0.1, { type: 'square', gain: 0.2 });
   tone(440, t + 0.15, 0.1, { type: 'square', gain: 0.2 });
 }
 
 export function playBuzzer() {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  const t = c.currentTime;
+  const t = at(c);
   tone(150, t, 0.5, { type: 'sawtooth', gain: 0.3, sweepTo: 90 });
   noiseBurst(t, 0.15, 0.15);
 }
 
 export function playDrumroll(durationSeconds: number) {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  const t = c.currentTime;
+  const t = at(c);
   const hitInterval = 0.09;
   const hits = Math.floor(durationSeconds / hitInterval);
   for (let i = 0; i < hits; i++) {
@@ -148,9 +165,9 @@ export function playDrumroll(durationSeconds: number) {
 
 /** Triumphant "ta-da" — plays the instant the winner is revealed. */
 export function playTaDa() {
-  const c = getCtx();
+  const c = activeCtx();
   if (!c) return;
-  const t = c.currentTime;
+  const t = at(c);
   const notes: [number, number, number][] = [
     [523.25, 0, 0.18],
     [659.25, 0.1, 0.18],

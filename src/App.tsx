@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GameProvider, useGame } from './state/GameContext';
 import { loadActiveGame, clearActiveGame } from './lib/storage';
 import { requestFullscreen } from './lib/orientation';
 import { hideNativeStatusBar } from './lib/nativeChrome';
 import { contrastText, teamThemeVars } from './lib/color';
-import { playBoop } from './lib/sound';
+import { playBoop, unlockAudio } from './lib/sound';
 import { ResumePrompt, FinishedGamePrompt } from './components/ResumePrompt';
 import { IntroScreen } from './screens/IntroScreen';
+import { WelcomeScreen } from './screens/WelcomeScreen';
 import { PackSelectScreen } from './screens/PackSelectScreen';
 import { TeamSetupScreen } from './screens/TeamSetupScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -38,20 +39,24 @@ function Root() {
 
   useEffect(() => {
     hideNativeStatusBar();
-    const onFirstGesture = () => {
-      requestFullscreen();
-      window.removeEventListener('pointerdown', onFirstGesture);
-    };
-    window.addEventListener('pointerdown', onFirstGesture);
-    return () => window.removeEventListener('pointerdown', onFirstGesture);
   }, []);
 
-  // One listener for the whole app: any control that doesn't carry its own
-  // sound answers a tap with a boop. Capture phase so it still fires for
-  // handlers that stop propagation.
+  // A single capture-phase listener drives both jobs, in this order:
+  //   1. Unlock audio. The browser keeps the AudioContext suspended (clock
+  //      frozen) until a gesture, and anything scheduled against that frozen
+  //      clock is discarded, so this has to happen before the first sound the
+  //      game wants to make -- not lazily when one is requested.
+  //   2. Boop, for any control that doesn't carry a sound of its own.
+  // Capture phase so it still fires for handlers that stop propagation.
+  const unlockedRef = useRef(false);
   useEffect(() => {
-    if (!soundEnabled) return;
     const onPointerDown = (e: PointerEvent) => {
+      if (!unlockedRef.current) {
+        unlockedRef.current = true;
+        unlockAudio();
+        requestFullscreen();
+      }
+      if (!soundEnabled) return;
       const target = e.target as Element | null;
       const control = target?.closest?.('button, input, [role="button"]');
       if (!control || control.matches('[data-no-boop], [data-no-boop] *')) return;
@@ -84,6 +89,12 @@ function Root() {
   const packMode: 'new-game' | 'manage' = state.draftPackChoice ? 'new-game' : 'manage';
 
   function handleIntroFinish() {
+    // A first-time player meets the rules and calibration before anything else;
+    // the saved-game prompt would only get in the way, so it waits.
+    if (!state.settings.onboarded) {
+      setScreen('welcome');
+      return;
+    }
     const snapshot = loadActiveGame();
     if (snapshot) setColdSnapshot(snapshot);
     setScreen('pack-select');
@@ -93,6 +104,8 @@ function Root() {
     switch (screen) {
       case 'intro':
         return <IntroScreen soundEnabled={state.settings.soundEnabled} onFinish={handleIntroFinish} />;
+      case 'welcome':
+        return <WelcomeScreen />;
       case 'pack-select':
         return <PackSelectScreen />;
       case 'team-setup':

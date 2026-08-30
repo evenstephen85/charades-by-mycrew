@@ -26,6 +26,8 @@ export interface GameSettings {
   /** Screen-relative pitch of the phone held against the forehead, captured
    *  during calibration. Null until the player has calibrated. */
   tiltNeutral: number | null;
+  /** False until the welcome screen (rules, about, calibration) has been seen. */
+  onboarded: boolean;
   theme: ThemeColors;
 }
 
@@ -73,6 +75,7 @@ export interface ActiveGameSnapshot {
 
 export type Screen =
   | 'intro'
+  | 'welcome'
   | 'pack-select'
   | 'team-setup'
   | 'settings'

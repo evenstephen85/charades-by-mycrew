@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { useGame } from '../state/GameContext';
-import { useOrientationLock } from '../lib/orientation';
 import { WORD_PACKS, ALL_PACK_IDS } from '../data/packs';
 import { MenuIcon } from '../components/icons';
 import { ResumePrompt } from '../components/ResumePrompt';
 import { unlockAudio } from '../lib/sound';
 import type { PackChoice } from '../state/GameContext';
-import { OrientationGate } from '../components/OrientationGate';
 
 export function PackSelectScreen() {
-  useOrientationLock('portrait');
   const { state, openSettings, choosePack, discardAndChoosePack, resumePausedGame } = useGame();
   const [pendingChoice, setPendingChoice] = useState<PackChoice | null>(null);
 
@@ -29,8 +26,7 @@ export function PackSelectScreen() {
   }
 
   return (
-    <div className="screen pack-select-screen portrait-only">
-      <OrientationGate need="portrait" />
+    <div className="screen pack-select-screen">
       <div className="pack-header">
         <h1>CHARADES</h1>
         <button className="menu-trigger" onClick={openSettings} aria-label="Settings">

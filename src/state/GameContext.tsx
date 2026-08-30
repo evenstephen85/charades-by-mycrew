@@ -184,8 +184,12 @@ function reducer(state: State, action: Action): State {
     case 'CLOSE_SETTINGS':
       return { ...state, screen: state.previousScreen ?? 'pack-select', previousScreen: null };
 
-    case 'UPDATE_SETTINGS':
-      return { ...state, settings: { ...state.settings, ...action.settings } };
+    case 'UPDATE_SETTINGS': {
+      const settings = { ...state.settings, ...action.settings };
+      // Completing the welcome flow moves straight on to choosing a pack.
+      const leavingWelcome = state.screen === 'welcome' && settings.onboarded;
+      return { ...state, settings, screen: leavingWelcome ? 'pack-select' : state.screen };
+    }
 
     case 'ADD_TEAM': {
       if (state.teams.length >= MAX_TEAMS) return state;

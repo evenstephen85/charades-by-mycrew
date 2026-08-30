@@ -1,9 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGame } from '../state/GameContext';
-import { useOrientationLock } from '../lib/orientation';
 import { contrastText } from '../lib/color';
 import { InGameMenu } from '../components/InGameMenu';
-import { OrientationGate } from '../components/OrientationGate';
 import { CheckIcon, ArrowIcon } from '../components/icons';
 
 interface Standing {
@@ -53,7 +51,6 @@ function useRankAnimation(containerRef: React.RefObject<HTMLDivElement | null>, 
 }
 
 export function TurnSummaryScreen() {
-  useOrientationLock('portrait');
   const { state, continueAfterSummary } = useGame();
   const game = state.game;
   const stripRef = useRef<HTMLDivElement>(null);
@@ -85,8 +82,7 @@ export function TurnSummaryScreen() {
   const isFreeplay = game.config.teamIds.length === 1;
 
   return (
-    <div className="screen turn-summary-screen portrait-only">
-      <OrientationGate need="portrait" />
+    <div className="screen turn-summary-screen">
       <InGameMenu floating />
 
       {/* The running scores stand in for a title -- who is ahead matters more

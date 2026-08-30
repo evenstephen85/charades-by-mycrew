@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { useGame } from '../state/GameContext';
-import { useOrientationLock } from '../lib/orientation';
 import { detectTiltSupport, requestMotionPermission } from '../lib/motion';
 import { unlockAudio } from '../lib/sound';
 import { InGameMenu } from '../components/InGameMenu';
 import { CheckIcon, ArrowIcon } from '../components/icons';
-import { OrientationGate } from '../components/OrientationGate';
 
 export function GetReadyScreen() {
-  useOrientationLock('landscape');
   const { state, beginTurn, setInputMode } = useGame();
   const game = state.game;
   const [preparing, setPreparing] = useState(false);
@@ -28,8 +25,7 @@ export function GetReadyScreen() {
   }
 
   return (
-    <div className="screen get-ready-screen landscape-only">
-      <OrientationGate need="landscape" />
+    <div className="screen get-ready-screen">
       <InGameMenu floating />
 
       <h2 className="screen-title">{headerTitle}</h2>

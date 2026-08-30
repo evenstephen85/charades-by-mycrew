@@ -20,6 +20,7 @@ export const defaultSettings: GameSettings = {
   tiltUpThreshold: DEFAULT_TILT_UP_THRESHOLD,
   tiltDownThreshold: DEFAULT_TILT_DOWN_THRESHOLD,
   tiltNeutral: null,
+  onboarded: false,
   theme: defaultTheme,
 };
 
