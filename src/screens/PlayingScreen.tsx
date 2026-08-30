@@ -82,12 +82,6 @@ export function PlayingScreen() {
       </div>
 
       <div className="playing-body">
-        {phase === 'active' && game.inputMode === 'buttons' && (
-          <button className="btn btn-skip side-btn" onClick={handleSkip}>
-            <ArrowIcon size={28} /> Skip
-          </button>
-        )}
-
         <div className="center-col word-area">
           {phase === 'countdown' ? (
             <div className="word-display">{countdown > 0 ? countdown : 'GO!'}</div>
@@ -97,9 +91,14 @@ export function PlayingScreen() {
         </div>
 
         {phase === 'active' && game.inputMode === 'buttons' && (
-          <button className="btn btn-correct side-btn" onClick={handleCorrect}>
-            <CheckIcon size={28} /> Correct
-          </button>
+          <div className="answer-bar">
+            <button className="btn btn-skip answer-btn" onClick={handleSkip} data-no-boop>
+              <ArrowIcon size={22} /> Skip
+            </button>
+            <button className="btn btn-correct answer-btn" onClick={handleCorrect} data-no-boop>
+              <CheckIcon size={22} /> Correct
+            </button>
+          </div>
         )}
       </div>
     </div>

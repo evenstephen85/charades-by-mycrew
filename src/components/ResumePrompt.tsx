@@ -24,3 +24,35 @@ export function ResumePrompt({ onResume, onStartNew }: ResumePromptProps) {
     </div>
   );
 }
+
+interface FinishedGamePromptProps {
+  onKeep: () => void;
+  onClear: () => void;
+}
+
+/**
+ * Shown instead of ResumePrompt when the saved game already reached the final
+ * scores. There is nothing left to play, so the only question is what to do
+ * with the scores it left behind.
+ */
+export function FinishedGamePrompt({ onKeep, onClear }: FinishedGamePromptProps) {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card stack">
+        <h2>Last game finished</h2>
+        <p className="subtitle">
+          Your last game played all the way through. Keep those scores on the teams, or clear
+          them back to zero?
+        </p>
+        <div className="stack">
+          <button className="btn btn-primary btn-block" onClick={onKeep}>
+            Keep Scores
+          </button>
+          <button className="btn btn-ghost btn-block" onClick={onClear}>
+            Clear Scores
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

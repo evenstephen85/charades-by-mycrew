@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGame } from '../state/GameContext';
 import { useOrientationLock } from '../lib/orientation';
 import { playDrumroll, playTaDa } from '../lib/sound';
+import { contrastText } from '../lib/color';
 import { InGameMenu } from '../components/InGameMenu';
 
 const DRUMROLL_SECONDS = 2.4;
@@ -15,10 +16,13 @@ interface FinalResultsScreenProps {
 
 export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
   useOrientationLock('landscape');
-  const { state, startGame, endGame } = useGame();
+  const { state, startGame, endGame, markFinaleRevealed } = useGame();
   const game = state.game;
   const isFreeplay = !!game && game.config.teamIds.length === 1;
-  const [phase, setPhase] = useState<Phase>(isFreeplay ? 'scores' : 'drumroll');
+  // A game restored after its finale already played goes straight to the
+  // scores -- no second drumroll, no second winner reveal.
+  const alreadyRevealed = !!game && game.finaleRevealed;
+  const [phase, setPhase] = useState<Phase>(isFreeplay || alreadyRevealed ? 'scores' : 'drumroll');
   const soundOn = state.settings.soundEnabled;
 
   const standings = game
@@ -36,7 +40,11 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
   const totalCorrect = game ? game.allTurnResults.reduce((sum, r) => sum + r.correct.length, 0) : 0;
 
   useEffect(() => {
-    if (isFreeplay) return;
+    if (isFreeplay || alreadyRevealed) {
+      markFinaleRevealed();
+      return;
+    }
+    markFinaleRevealed();
     if (soundOn) playDrumroll(DRUMROLL_SECONDS);
     const toWinner = setTimeout(() => {
       setPhase('winner');
@@ -88,11 +96,11 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
             </div>
           </div>
 
-          <div className="row">
-            <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={handlePlayAgain}>
+          <div className="final-actions">
+            <button className="btn btn-primary btn-lg" onClick={handlePlayAgain}>
               Play Again
             </button>
-            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => endGame('pack-select')}>
+            <button className="btn btn-ghost btn-lg" onClick={() => endGame('pack-select')}>
               Home
             </button>
           </div>
@@ -105,7 +113,11 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
             <h2 className="screen-title">{headerTitle}</h2>
             <div className="final-scores-grid">
               {standings.map((t) => (
-                <div className={`score-tile ${t.score === topScore ? 'leader' : ''}`} key={t.id}>
+                <div
+                  className={`score-tile ${t.score === topScore ? 'leader' : ''}`}
+                  key={t.id}
+                  style={{ background: t.color, color: contrastText(t.color) }}
+                >
                   <span>{t.name}</span>
                   <span className="score-value">{t.score}</span>
                 </div>
@@ -113,11 +125,11 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
             </div>
           </div>
 
-          <div className="row">
-            <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={handlePlayAgain}>
+          <div className="final-actions">
+            <button className="btn btn-primary btn-lg" onClick={handlePlayAgain}>
               Play Again
             </button>
-            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => endGame('pack-select')}>
+            <button className="btn btn-ghost btn-lg" onClick={() => endGame('pack-select')}>
               Home
             </button>
           </div>

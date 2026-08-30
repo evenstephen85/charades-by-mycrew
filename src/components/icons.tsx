@@ -60,3 +60,20 @@ export function PlusIcon({ size = 22, color = 'currentColor', className, style }
     </svg>
   );
 }
+
+export function RotateIcon({ size = 24, color = 'currentColor', className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} style={style} aria-hidden="true">
+      <rect x="3" y="7" width="18" height="10" rx="2" stroke={color} strokeWidth={2} />
+      <path
+        d="M8 3.6A9 9 0 0 1 12 2.7"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <path d="M12 21.3a9 9 0 0 1-4-.9" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <path d="M15.5 2.2l1.9 1.6-1.9 1.6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.5 21.8l-1.9-1.6 1.9-1.6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

@@ -23,7 +23,7 @@ import {
   saveTeams,
 } from '../lib/storage';
 import { getAllWordsFromPacks } from '../data/packs';
-import { colorForIndex, nameForColor } from '../lib/teamColors';
+import { TEAM_COLORS, colorForIndex, nameForColor } from '../lib/teamColors';
 import { makeId, shuffle } from '../lib/util';
 
 export const MAX_TEAMS = 6;
@@ -40,6 +40,7 @@ interface RuntimeGame {
   sessionScores: Record<string, number>;
   inputMode: InputMode;
   pausedScreen: Screen;
+  finaleRevealed: boolean;
 }
 
 export interface PackChoice {
@@ -76,6 +77,8 @@ type Action =
   | { type: 'PAUSE_HOME' }
   | { type: 'RESUME_PAUSED_GAME' }
   | { type: 'END_GAME'; nextScreen: 'pack-select' | 'team-setup' }
+  | { type: 'CLEAR_SCORES' }
+  | { type: 'MARK_FINALE_REVEALED' }
   | { type: 'DISCARD_AND_CHOOSE_PACK'; choice: PackChoice }
   | { type: 'LOAD_SNAPSHOT'; snapshot: ActiveGameSnapshot };
 
@@ -97,6 +100,7 @@ function snapshotFromGame(game: RuntimeGame, screen: Screen): ActiveGameSnapshot
     allTurnResults: game.allTurnResults,
     sessionScores: game.sessionScores,
     inputMode: game.inputMode,
+    finaleRevealed: game.finaleRevealed,
   };
 }
 
@@ -112,6 +116,7 @@ function gameFromSnapshot(snapshot: ActiveGameSnapshot): RuntimeGame {
     sessionScores: snapshot.sessionScores,
     inputMode: snapshot.inputMode,
     pausedScreen: snapshot.screen,
+    finaleRevealed: snapshot.finaleRevealed ?? snapshot.screen === 'final-results',
   };
 }
 
@@ -128,6 +133,17 @@ function ensureMinTeams(teams: Team[]): Team[] {
     result.push({ id: makeId(), name: color.name, color: color.hex, score: 0, isDefaultName: true });
   }
   return result;
+}
+
+/** First palette colour not already taken by a team, so two teams never match. */
+function firstFreeColor(teams: Team[]) {
+  const taken = new Set(teams.map((t) => t.color.toLowerCase()));
+  return TEAM_COLORS.find((c) => !taken.has(c.hex.toLowerCase())) ?? colorForIndex(teams.length);
+}
+
+/** Scores are per-game: zero them whenever no game is in progress. */
+function zeroScores(teams: Team[]): Team[] {
+  return teams.map((t) => (t.score === 0 ? t : { ...t, score: 0 }));
 }
 
 function initialState(): State {
@@ -168,7 +184,7 @@ function reducer(state: State, action: Action): State {
 
     case 'ADD_TEAM': {
       if (state.teams.length >= MAX_TEAMS) return state;
-      const color = colorForIndex(state.teams.length);
+      const color = firstFreeColor(state.teams);
       const team: Team = {
         id: makeId(),
         name: color.name,
@@ -192,7 +208,11 @@ function reducer(state: State, action: Action): State {
         ),
       };
 
-    case 'RECOLOR_TEAM':
+    case 'RECOLOR_TEAM': {
+      const takenByOther = state.teams.some(
+        (t) => t.id !== action.id && t.color.toLowerCase() === action.color.toLowerCase(),
+      );
+      if (takenByOther) return state;
       return {
         ...state,
         teams: state.teams.map((t) =>
@@ -201,6 +221,7 @@ function reducer(state: State, action: Action): State {
             : t,
         ),
       };
+    }
 
     case 'ADJUST_TEAM_SCORE':
       return {
@@ -222,6 +243,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         screen: 'get-ready',
         draftPackChoice: null,
+        teams: zeroScores(state.teams),
         game: {
           config: action.config,
           turnOrder,
@@ -233,6 +255,7 @@ function reducer(state: State, action: Action): State {
           sessionScores,
           inputMode: 'buttons',
           pausedScreen: 'get-ready',
+          finaleRevealed: false,
         },
       };
     }
@@ -353,8 +376,22 @@ function reducer(state: State, action: Action): State {
     case 'END_GAME':
       return { ...state, screen: action.nextScreen, game: null, draftPackChoice: null };
 
+    case 'CLEAR_SCORES':
+      return { ...state, teams: zeroScores(state.teams) };
+
+    case 'MARK_FINALE_REVEALED': {
+      if (!state.game || state.game.finaleRevealed) return state;
+      return { ...state, game: { ...state.game, finaleRevealed: true } };
+    }
+
     case 'DISCARD_AND_CHOOSE_PACK':
-      return { ...state, game: null, draftPackChoice: action.choice, screen: 'team-setup' };
+      return {
+        ...state,
+        game: null,
+        draftPackChoice: action.choice,
+        screen: 'team-setup',
+        teams: zeroScores(state.teams),
+      };
 
     case 'LOAD_SNAPSHOT':
       return { ...state, game: gameFromSnapshot(action.snapshot), screen: action.snapshot.screen };
@@ -386,6 +423,8 @@ interface GameContextValue {
   pauseHome: () => void;
   resumePausedGame: () => void;
   endGame: (nextScreen: 'pack-select' | 'team-setup') => void;
+  clearScores: () => void;
+  markFinaleRevealed: () => void;
   loadSnapshot: (snapshot: ActiveGameSnapshot) => void;
 }
 
@@ -444,9 +483,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       pauseHome: () => dispatch({ type: 'PAUSE_HOME' }),
       resumePausedGame: () => dispatch({ type: 'RESUME_PAUSED_GAME' }),
       endGame: (nextScreen) => {
-        clearActiveGame();
+        // The snapshot deliberately survives: a finished game is offered back as
+        // "keep or clear these scores", not resumed.
         dispatch({ type: 'END_GAME', nextScreen });
       },
+      clearScores: () => dispatch({ type: 'CLEAR_SCORES' }),
+      markFinaleRevealed: () => dispatch({ type: 'MARK_FINALE_REVEALED' }),
       loadSnapshot: (snapshot) => dispatch({ type: 'LOAD_SNAPSHOT', snapshot }),
     }),
     [state],

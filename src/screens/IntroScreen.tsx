@@ -15,8 +15,8 @@ export function IntroScreen({ soundEnabled, onFinish }: IntroScreenProps) {
     const outTimer = setTimeout(() => {
       setPhase('out');
       if (soundEnabled) playWhoosh(0.32);
-    }, 2500);
-    const finishTimer = setTimeout(onFinish, 3050);
+    }, 2000);
+    const finishTimer = setTimeout(onFinish, 2550);
     return () => {
       clearTimeout(holdTimer);
       clearTimeout(outTimer);
@@ -29,6 +29,11 @@ export function IntroScreen({ soundEnabled, onFinish }: IntroScreenProps) {
     <div className={`intro-screen intro-${phase}`}>
       <div className="intro-title">CHARADES</div>
       <div className="intro-subtitle">by MyCrew Gaming</div>
+      <div className="intro-dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
     </div>
   );
 }

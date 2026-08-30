@@ -3,8 +3,10 @@ import { useGame, MAX_TEAMS, MIN_TEAMS } from '../state/GameContext';
 import { loadLastConfig } from '../lib/storage';
 import { useOrientationLock } from '../lib/orientation';
 import { TEAM_COLORS } from '../lib/teamColors';
+import { contrastText } from '../lib/color';
 import { TrashIcon, ArrowIcon } from '../components/icons';
 import type { GameConfig } from '../types';
+import { OrientationGate } from '../components/OrientationGate';
 
 const ROUND_MIN = 15;
 const ROUND_MAX = 120;
@@ -40,8 +42,18 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
     startGame(config);
   }
 
+  // A step is offered only when it lands inside the allowed range, so e.g. -15
+  // greys out at 20s and 25s rather than silently clamping to the minimum.
+  const canStep = (delta: number) => {
+    const next = roundSeconds + delta;
+    return next >= ROUND_MIN && next <= ROUND_MAX;
+  };
+
+  const takenColors = new Set(state.teams.map((t) => t.color.toLowerCase()));
+
   return (
-    <div className="screen team-setup-screen">
+    <div className="screen team-setup-screen portrait-only">
+      <OrientationGate need="portrait" />
       <div className="top-bar">
         <button
           className="icon-btn"
@@ -55,8 +67,15 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
       </div>
 
       <div className="screen-body">
-      <div className="team-setup-columns">
         <div className="team-setup-list">
+          {mode === 'manage' && (
+            <div className="team-setup-headings">
+              <span className="team-heading-name">Team</span>
+              <span className="team-heading-score">Score</span>
+              <span className="team-heading-spacer" />
+            </div>
+          )}
+
           {state.teams.map((team) => (
             <div className="team-setup-row" key={team.id}>
               <button
@@ -76,7 +95,10 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
                 />
               )}
               {mode === 'manage' && (
-                <div className="score-adjust">
+                <div
+                  className="score-adjust"
+                  style={{ background: team.color, color: contrastText(team.color) }}
+                >
                   <button
                     onClick={() => adjustTeamScore(team.id, -1)}
                     disabled={team.score <= 0}
@@ -84,7 +106,7 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
                   >
                     −
                   </button>
-                  <span>{team.score}</span>
+                  <span className="score-adjust-value">{team.score}</span>
                   <button onClick={() => adjustTeamScore(team.id, 1)} aria-label="Increase score">+</button>
                 </div>
               )}
@@ -99,7 +121,13 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
 
               {colorPickerFor === team.id && (
                 <div className="color-popover">
-                  {TEAM_COLORS.map((c) => (
+                  {/* Colours already worn by another team aren't offered, so two
+                      teams can never end up the same colour. */}
+                  {TEAM_COLORS.filter(
+                    (c) =>
+                      c.hex.toLowerCase() === team.color.toLowerCase() ||
+                      !takenColors.has(c.hex.toLowerCase()),
+                  ).map((c) => (
                     <button
                       key={c.hex}
                       className="color-popover-swatch"
@@ -128,11 +156,11 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
             <div className="row-control">
               <div className="field-label">Round Length</div>
               <div className="dual-stepper">
-                <button onClick={() => adjustRound(-15)} disabled={roundSeconds <= ROUND_MIN}>-15</button>
-                <button onClick={() => adjustRound(-5)} disabled={roundSeconds <= ROUND_MIN}>-5</button>
+                <button onClick={() => adjustRound(-15)} disabled={!canStep(-15)}>-15</button>
+                <button onClick={() => adjustRound(-5)} disabled={!canStep(-5)}>-5</button>
                 <span className="value">{roundSeconds}s</span>
-                <button onClick={() => adjustRound(5)} disabled={roundSeconds >= ROUND_MAX}>+5</button>
-                <button onClick={() => adjustRound(15)} disabled={roundSeconds >= ROUND_MAX}>+15</button>
+                <button onClick={() => adjustRound(5)} disabled={!canStep(5)}>+5</button>
+                <button onClick={() => adjustRound(15)} disabled={!canStep(15)}>+15</button>
               </div>
             </div>
 
@@ -156,7 +184,6 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
             </div>
           </div>
         )}
-      </div>
       </div>
 
       {mode === 'new-game' && (

@@ -61,18 +61,26 @@ export function getOrientationAngle(): number {
  * When the screen is rotated into landscape, the axis that corresponds to
  * "tilt the top of the phone up/down" swaps from beta to gamma. This
  * remaps the raw reading into a single screen-relative pitch value.
+ *
+ * Sign convention: POSITIVE means the top of the phone has tilted up, as
+ * the player experiences it with the screen facing away from their
+ * forehead. The raw axes run the other way round, so every branch is
+ * negated -- without this, tilting up scored a skip and tilting down
+ * scored a correct, the opposite of the on-screen instructions. Both the
+ * tilt control and the calibration wizard read pitch through here, so
+ * they stay consistent with each other.
  */
 export function screenRelativePitch(beta: number, gamma: number, angle: number): number {
   switch (angle) {
     case 90:
-      return -gamma;
+      return gamma;
     case -90:
     case 270:
-      return gamma;
+      return -gamma;
     case 180:
-      return -beta;
-    default:
       return beta;
+    default:
+      return -beta;
   }
 }
 

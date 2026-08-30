@@ -60,6 +60,9 @@ export interface ActiveGameSnapshot {
   allTurnResults: TurnResult[];
   sessionScores: Record<string, number>;
   inputMode: InputMode;
+  /** True once the drumroll/winner reveal has played, so restoring a finished
+   *  game shows the scores straight away instead of replaying the fanfare. */
+  finaleRevealed: boolean;
 }
 
 export type Screen =

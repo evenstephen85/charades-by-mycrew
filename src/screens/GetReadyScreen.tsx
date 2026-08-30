@@ -5,6 +5,7 @@ import { detectTiltSupport, requestMotionPermission } from '../lib/motion';
 import { unlockAudio } from '../lib/sound';
 import { InGameMenu } from '../components/InGameMenu';
 import { CheckIcon, ArrowIcon } from '../components/icons';
+import { OrientationGate } from '../components/OrientationGate';
 
 export function GetReadyScreen() {
   useOrientationLock('landscape');
@@ -27,11 +28,13 @@ export function GetReadyScreen() {
   }
 
   return (
-    <div className="screen get-ready-screen">
+    <div className="screen get-ready-screen landscape-only">
+      <OrientationGate need="landscape" />
       <InGameMenu floating />
 
+      <h2 className="screen-title">{headerTitle}</h2>
+
       <div className="center-col">
-        <h1 className="screen-title">{headerTitle}</h1>
         <div className="card stack instruction-card">
           <p className="subtitle" style={{ textAlign: 'center' }}>Give the phone to your guesser.</p>
           <div className="tilt-instructions">

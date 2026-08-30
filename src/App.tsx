@@ -4,7 +4,8 @@ import { loadActiveGame, clearActiveGame } from './lib/storage';
 import { requestFullscreen } from './lib/orientation';
 import { hideNativeStatusBar } from './lib/nativeChrome';
 import { contrastText, teamThemeVars } from './lib/color';
-import { ResumePrompt } from './components/ResumePrompt';
+import { playBoop } from './lib/sound';
+import { ResumePrompt, FinishedGamePrompt } from './components/ResumePrompt';
 import { IntroScreen } from './screens/IntroScreen';
 import { PackSelectScreen } from './screens/PackSelectScreen';
 import { TeamSetupScreen } from './screens/TeamSetupScreen';
@@ -31,8 +32,9 @@ function currentTeamColor(state: ReturnType<typeof useGame>['state']): string | 
 }
 
 function Root() {
-  const { state, setScreen, loadSnapshot } = useGame();
+  const { state, setScreen, loadSnapshot, clearScores } = useGame();
   const [coldSnapshot, setColdSnapshot] = useState<ActiveGameSnapshot | null>(null);
+  const soundEnabled = state.settings.soundEnabled;
 
   useEffect(() => {
     hideNativeStatusBar();
@@ -43,6 +45,22 @@ function Root() {
     window.addEventListener('pointerdown', onFirstGesture);
     return () => window.removeEventListener('pointerdown', onFirstGesture);
   }, []);
+
+  // One listener for the whole app: any control that doesn't carry its own
+  // sound answers a tap with a boop. Capture phase so it still fires for
+  // handlers that stop propagation.
+  useEffect(() => {
+    if (!soundEnabled) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      const control = target?.closest?.('button, input, [role="button"]');
+      if (!control || control.matches('[data-no-boop], [data-no-boop] *')) return;
+      if (control instanceof HTMLButtonElement && control.disabled) return;
+      playBoop();
+    };
+    window.addEventListener('pointerdown', onPointerDown, true);
+    return () => window.removeEventListener('pointerdown', onPointerDown, true);
+  }, [soundEnabled]);
 
   const [finalPhaseColor, setFinalPhaseColor] = useState<string | null>(null);
   const teamColor = state.screen === 'final-results' ? finalPhaseColor : currentTeamColor(state);
@@ -99,7 +117,20 @@ function Root() {
       <div className="app-shell">
         {screenFor(state.screen)}
       </div>
-      {coldSnapshot && (
+      {coldSnapshot && coldSnapshot.screen === 'final-results' && (
+        <FinishedGamePrompt
+          onKeep={() => {
+            clearActiveGame();
+            setColdSnapshot(null);
+          }}
+          onClear={() => {
+            clearActiveGame();
+            clearScores();
+            setColdSnapshot(null);
+          }}
+        />
+      )}
+      {coldSnapshot && coldSnapshot.screen !== 'final-results' && (
         <ResumePrompt
           onResume={() => {
             loadSnapshot(coldSnapshot);
@@ -107,6 +138,7 @@ function Root() {
           }}
           onStartNew={() => {
             clearActiveGame();
+            clearScores();
             setColdSnapshot(null);
           }}
         />

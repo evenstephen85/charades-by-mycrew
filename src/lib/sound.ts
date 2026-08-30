@@ -96,6 +96,15 @@ export function playWhoosh(duration = 0.32) {
   noiseBurst(t, duration, 0.35, { filterFrom: 2200, filterTo: 180, filterType: 'bandpass' });
 }
 
+/** Soft UI click — plays on any tap while sound is on. */
+export function playBoop() {
+  const c = getCtx();
+  if (!c) return;
+  const t = c.currentTime;
+  tone(520, t, 0.05, { type: 'sine', gain: 0.09 });
+  tone(780, t + 0.02, 0.05, { type: 'sine', gain: 0.05 });
+}
+
 export function playCountdownTick() {
   const c = getCtx();
   if (!c) return;

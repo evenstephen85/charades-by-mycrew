@@ -6,6 +6,7 @@ import { MenuIcon } from '../components/icons';
 import { ResumePrompt } from '../components/ResumePrompt';
 import { unlockAudio } from '../lib/sound';
 import type { PackChoice } from '../state/GameContext';
+import { OrientationGate } from '../components/OrientationGate';
 
 export function PackSelectScreen() {
   useOrientationLock('portrait');
@@ -14,15 +15,22 @@ export function PackSelectScreen() {
 
   function handlePick(choice: PackChoice) {
     unlockAudio();
-    if (state.game) {
+    // A game that already reached the final scores has nothing left to resume,
+    // so don't ask -- just clear it and go on to set up the new one.
+    if (state.game && state.game.pausedScreen !== 'final-results') {
       setPendingChoice(choice);
+      return;
+    }
+    if (state.game) {
+      discardAndChoosePack(choice);
       return;
     }
     choosePack(choice);
   }
 
   return (
-    <div className="screen pack-select-screen">
+    <div className="screen pack-select-screen portrait-only">
+      <OrientationGate need="portrait" />
       <div className="pack-header">
         <h1>CHARADES</h1>
         <button className="menu-trigger" onClick={openSettings} aria-label="Settings">
