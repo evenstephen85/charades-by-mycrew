@@ -26,7 +26,9 @@ React + TypeScript + Vite, wrapped for iOS/Android with
   either. Locked natively via Capacitor's Screen Orientation plugin
 - Whichever team is up gets the whole screen reskinned in their color
   (ready page, acting, and the turn summary)
-- In-game menu (pause, Settings, Home) on every gameplay screen
+- In-game menu (pause, Settings, Home) on every gameplay screen, as a
+  floating button in the top corner — gameplay screens carry no header
+  bar, so the word and the reveal get the full height of the screen
 - End-of-turn summary in a 3-column layout (correct / skipped / scores) so
   it fits without scrolling in landscape; scores are hidden on the final
   round to build suspense
