@@ -11,7 +11,8 @@ const THRESHOLD_MAX = 85;
 type Step = 'intro' | 'capturing' | 'up' | 'down' | 'result' | 'error';
 
 interface TiltCalibrationProps {
-  onSave: (upThreshold: number, downThreshold: number) => void;
+  /** neutral is the captured forehead position; gameplay reads tilt against it. */
+  onSave: (upThreshold: number, downThreshold: number, neutral: number) => void;
   onClose: () => void;
 }
 
@@ -119,7 +120,10 @@ export function TiltCalibration({ onSave, onClose }: TiltCalibrationProps) {
                 <span className="calibration-value">{downThreshold}°</span>
               </div>
             </div>
-            <button className="btn btn-primary btn-block" onClick={() => onSave(upThreshold, downThreshold)}>
+            <button
+              className="btn btn-primary btn-block"
+              onClick={() => onSave(upThreshold, downThreshold, neutral ?? 0)}
+            >
               Save
             </button>
             <button className="btn btn-block" onClick={handleStart}>

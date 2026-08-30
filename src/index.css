@@ -34,11 +34,14 @@ body {
   flex-direction: column;
 }
 
+/* The shell clips at its padding box, so the padding has to be at least as
+   deep as the buttons' drop shadows (0 3px 10px) or the shadows get sliced off
+   square along every edge. */
 .app-shell {
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(12px + var(--safe-left));
+  padding: calc(14px + var(--safe-top)) calc(14px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(14px + var(--safe-left));
   background: var(--bg);
   color: var(--text);
   overflow: hidden;
@@ -495,29 +498,6 @@ input[type='color'] {
 
 /* ---------- Pack select ---------- */
 
-.intro-dots {
-  display: flex;
-  gap: 10px;
-  margin-top: 26px;
-}
-
-.intro-dots span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text);
-  opacity: 0.35;
-  animation: dot-pulse 1.05s ease-in-out infinite;
-}
-
-.intro-dots span:nth-child(2) { animation-delay: 0.15s; }
-.intro-dots span:nth-child(3) { animation-delay: 0.3s; }
-
-@keyframes dot-pulse {
-  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1.15); }
-}
-
 .pack-select-screen {
   padding-top: 0;
 }
@@ -541,6 +521,10 @@ input[type='color'] {
 .pack-list {
   flex: 1;
   min-height: 0;
+  /* Inset then pulled back out: gives the tiles' shadows room inside the
+     scroll container without shifting the grid. */
+  padding: 6px;
+  margin: -6px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-auto-rows: minmax(46px, 1fr);
@@ -604,8 +588,11 @@ input[type='color'] {
 .team-setup-list {
   min-height: 0;
   /* Last-resort valve: on a viewport too short for every team, the list
-     scrolls instead of overlapping the Start Game button. */
+     scrolls instead of overlapping the Start Game button. Padded so row
+     shadows aren't clipped square by that scroll box. */
   overflow-y: auto;
+  padding: 6px;
+  margin: -6px;
   display: flex;
   flex-direction: column;
   gap: clamp(4px, 1vh, 8px);
@@ -861,6 +848,13 @@ input[type='color'] {
   overflow: hidden;
 }
 
+.summary-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .score-strip {
   display: flex;
   flex-wrap: wrap;
@@ -1063,25 +1057,42 @@ input[type='color'] {
   align-content: start;
 }
 
-/* Landscape has height to spare only across two columns; each cell is a whole
-   setting, so nothing gets split across the fold. */
+/* Landscape is short, so spread the cells across three columns: two rows of
+   settings plus the Home row fits without crowding the Done button. */
 @media (orientation: landscape) {
   .settings-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-.setting-row {
+/* One fixed height for every cell, card or button alike -- a taller control
+   inside (the colour swatch) must not make its box bigger than its neighbours. */
+.setting-cell {
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
-  min-height: 56px;
+  padding: 0 16px;
 }
 
-.settings-grid > .btn {
-  min-height: 56px;
+.settings-grid > .btn.setting-cell {
+  justify-content: center;
+}
+
+.setting-home {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.custom-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .settings-screen {

@@ -11,18 +11,24 @@ type Phase = 'countdown' | 'active';
 
 export function PlayingScreen() {
   useOrientationLock('landscape');
-  const { state, answer, endTurn } = useGame();
+  const { state, answer, endTurn, setTimeLeft: persistTimeLeft } = useGame();
   const game = state.game;
   const soundOn = state.settings.soundEnabled;
 
   const [phase, setPhase] = useState<Phase>('countdown');
   const [countdown, setCountdown] = useState(3);
-  const [timeLeft, setTimeLeft] = useState(game?.config.roundSeconds ?? 60);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(game?.timeLeft ?? game?.config.roundSeconds ?? 60);
   const endedRef = useRef(false);
 
+  // Mirror the clock into game state each tick so leaving the screen (Settings,
+  // Home) and coming back resumes the same round instead of restarting it.
   useEffect(() => {
-    if (phase !== 'countdown' || menuOpen) return;
+    if (phase === 'active') persistTimeLeft(timeLeft);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, timeLeft]);
+
+  useEffect(() => {
+    if (phase !== 'countdown') return;
     if (countdown <= 0) {
       if (soundOn) playGo();
       setPhase('active');
@@ -31,10 +37,10 @@ export function PlayingScreen() {
     if (soundOn) playCountdownTick();
     const t = setTimeout(() => setCountdown((c) => c - 1), 700);
     return () => clearTimeout(t);
-  }, [phase, countdown, soundOn, menuOpen]);
+  }, [phase, countdown, soundOn]);
 
   useEffect(() => {
-    if (phase !== 'active' || menuOpen) return;
+    if (phase !== 'active') return;
     if (timeLeft <= 0) {
       if (!endedRef.current) {
         endedRef.current = true;
@@ -47,26 +53,27 @@ export function PlayingScreen() {
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, timeLeft, soundOn, menuOpen]);
+  }, [phase, timeLeft, soundOn]);
 
   const handleCorrect = () => {
-    if (phase !== 'active' || menuOpen) return;
+    if (phase !== 'active') return;
     if (soundOn) playCorrect();
     answer('correct');
   };
   const handleSkip = () => {
-    if (phase !== 'active' || menuOpen) return;
+    if (phase !== 'active') return;
     if (soundOn) playWhoosh(0.22);
     answer('skip');
   };
 
-  const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt' && !menuOpen;
+  const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt';
   useTiltControl(
     tiltActive,
     handleCorrect,
     handleSkip,
     state.settings.tiltUpThreshold,
     state.settings.tiltDownThreshold,
+    state.settings.tiltNeutral,
   );
 
   if (!game || !game.currentTurn) return null;
@@ -78,7 +85,7 @@ export function PlayingScreen() {
         <span className={`timer-ring ${timeLeft <= 3 ? 'low' : ''}`}>
           {phase === 'active' ? formatTime(timeLeft) : formatTime(game.config.roundSeconds)}
         </span>
-        <InGameMenu onOpenChange={setMenuOpen} />
+        <InGameMenu />
       </div>
 
       <div className="playing-body">

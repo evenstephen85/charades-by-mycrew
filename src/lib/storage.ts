@@ -19,6 +19,7 @@ export const defaultSettings: GameSettings = {
   soundEnabled: true,
   tiltUpThreshold: DEFAULT_TILT_UP_THRESHOLD,
   tiltDownThreshold: DEFAULT_TILT_DOWN_THRESHOLD,
+  tiltNeutral: null,
   theme: defaultTheme,
 };
 

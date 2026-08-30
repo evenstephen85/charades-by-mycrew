@@ -4,7 +4,8 @@ import { Switch } from '../components/Switch';
 import { defaultTheme } from '../lib/storage';
 import { deriveThemeColors } from '../lib/color';
 import { TEAM_COLORS } from '../lib/teamColors';
-import { ArrowIcon, CloseIcon } from '../components/icons';
+import { playBoop } from '../lib/sound';
+import { ArrowIcon, CloseIcon, HomeIcon } from '../components/icons';
 import { TiltCalibration } from '../components/TiltCalibration';
 
 type PickerTarget = 'background' | 'accent' | null;
@@ -15,13 +16,20 @@ export function SettingsScreen() {
   const [picker, setPicker] = useState<PickerTarget>(null);
   const [calibrating, setCalibrating] = useState(false);
 
-  function choose(hex: string) {
+  function applyColor(hex: string) {
     if (picker === 'background') {
       updateSettings({ theme: { ...settings.theme, ...deriveThemeColors(hex) } });
     } else if (picker === 'accent') {
       updateSettings({ theme: { ...settings.theme, accent: hex } });
     }
-    setPicker(null);
+  }
+
+  function toggleSound() {
+    const next = !settings.soundEnabled;
+    // Confirms the change audibly when switching on. Switching off stays silent,
+    // which is the whole point of switching off.
+    if (next) playBoop();
+    updateSettings({ soundEnabled: next });
   }
 
   // The two theme colours must stay distinguishable, so whichever one is in use
@@ -44,16 +52,12 @@ export function SettingsScreen() {
 
       <div className="screen-body">
         <div className="settings-grid">
-          <div className="card setting-row">
+          <div className="card setting-cell">
             <div className="field-label">Sound Effects</div>
-            <Switch
-              on={settings.soundEnabled}
-              label="Toggle sound effects"
-              onToggle={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
-            />
+            <Switch on={settings.soundEnabled} label="Toggle sound effects" noBoop onToggle={toggleSound} />
           </div>
 
-          <div className="card setting-row">
+          <div className="card setting-cell">
             <div className="field-label">Background Color</div>
             <button
               className="color-swatch-btn"
@@ -63,7 +67,7 @@ export function SettingsScreen() {
             />
           </div>
 
-          <div className="card setting-row">
+          <div className="card setting-cell">
             <div className="field-label">Accent Color</div>
             <button
               className="color-swatch-btn"
@@ -73,20 +77,22 @@ export function SettingsScreen() {
             />
           </div>
 
-          <button className="btn btn-block" onClick={() => updateSettings({ theme: defaultTheme })}>
+          <button className="btn setting-cell" onClick={() => updateSettings({ theme: defaultTheme })}>
             Reset to Default Colors
           </button>
 
-          <button className="btn btn-block" onClick={() => setScreen('team-setup')}>
+          <button className="btn setting-cell" onClick={() => setScreen('team-setup')}>
             Manage Teams
           </button>
 
-          <button className="btn btn-block" onClick={() => setCalibrating(true)}>
+          <button className="btn setting-cell" onClick={() => setCalibrating(true)}>
             Calibrate Tilt
           </button>
 
+          {/* Full width across whatever column count the grid is using. */}
           {state.game && (
-            <button className="btn btn-block" onClick={pauseHome}>
+            <button className="btn setting-cell setting-home" onClick={pauseHome}>
+              <HomeIcon size={20} />
               Home
             </button>
           )}
@@ -113,18 +119,30 @@ export function SettingsScreen() {
                   className={`color-swatch-btn ${current.toLowerCase() === c.hex.toLowerCase() ? 'selected' : ''}`}
                   style={{ background: c.hex }}
                   aria-label={c.name}
-                  onClick={() => choose(c.hex)}
+                  onClick={() => {
+                    applyColor(c.hex);
+                    setPicker(null);
+                  }}
                 />
               ))}
             </div>
+            <label className="custom-color-row">
+              <span className="field-label">Custom</span>
+              <input
+                type="color"
+                value={current}
+                aria-label="Custom color"
+                onChange={(e) => applyColor(e.target.value)}
+              />
+            </label>
           </div>
         </div>
       )}
 
       {calibrating && (
         <TiltCalibration
-          onSave={(up, down) => {
-            updateSettings({ tiltUpThreshold: up, tiltDownThreshold: down });
+          onSave={(up, down, neutral) => {
+            updateSettings({ tiltUpThreshold: up, tiltDownThreshold: down, tiltNeutral: neutral });
             setCalibrating(false);
           }}
           onClose={() => setCalibrating(false)}

@@ -85,18 +85,25 @@ export function screenRelativePitch(beta: number, gamma: number, angle: number):
 }
 
 /**
- * gamma (and therefore screen-relative pitch derived from it) is only
- * defined over a 180-degree span. A phone resting near that edge (e.g.
- * held to the forehead at close to +/-90) can have a tilt in one
- * direction read as a jump to the opposite sign instead of a smooth
- * change. Treating the domain as circular with a 180-degree period
- * un-does that jump so a delta from a calibrated neutral stays smooth
- * no matter where the neutral position falls in the range.
+ * The pitch axis wraps, and how far depends on which raw axis it came from:
+ * gamma is defined over 180 degrees, beta over 360. Reading a delta without
+ * accounting for that makes a tilt near the edge of the range read as a jump
+ * to the opposite sign.
+ *
+ * Rather than assume the phone sits near any particular angle, the period is
+ * derived from the screen rotation and the delta is wrapped into
+ * (-period/2, +period/2]. That keeps a delta from the calibrated forehead
+ * neutral smooth wherever that neutral happens to fall.
  */
-export function wrappedPitchDelta(current: number, neutral: number): number {
-  let d = current - neutral;
-  if (d > 90) d -= 180;
-  if (d < -90) d += 180;
+export function pitchPeriodForAngle(angle: number): number {
+  return angle === 90 || angle === -90 || angle === 270 ? 180 : 360;
+}
+
+export function wrappedPitchDelta(current: number, neutral: number, period = 180): number {
+  const half = period / 2;
+  let d = (current - neutral) % period;
+  if (d > half) d -= period;
+  if (d < -half) d += period;
   return d;
 }
 
@@ -107,11 +114,16 @@ const DEBOUNCE_MS = 140;
 const RESET_RATIO = 0.4;
 
 /**
- * Fires onCorrect/onSkip when the phone tilts away from its calibrated
- * starting angle (held to the forehead) past the up/down thresholds, with
- * hysteresis and a short debounce so sensor noise and a single quick
- * flick don't fire it by accident. Tilting the top of the phone up
- * fires onCorrect; tilting it down fires onSkip.
+ * Fires onCorrect/onSkip when the phone tilts away from the forehead neutral
+ * past the up/down thresholds, with hysteresis and a short debounce so sensor
+ * noise and a single quick flick don't fire it by accident. Tilting the top of
+ * the phone up fires onCorrect; tilting it down fires onSkip.
+ *
+ * `calibratedNeutral` is the forehead position captured by the calibration
+ * wizard. When it is set, both the neutral and the thresholds come from
+ * calibration and nothing is inferred at turn start. Only when the player has
+ * never calibrated does it fall back to taking the first reading of the turn as
+ * neutral.
  */
 export function useTiltControl(
   active: boolean,
@@ -119,6 +131,7 @@ export function useTiltControl(
   onSkip: () => void,
   upThreshold = DEFAULT_TILT_UP_THRESHOLD,
   downThreshold = DEFAULT_TILT_DOWN_THRESHOLD,
+  calibratedNeutral: number | null = null,
 ) {
   const neutral = useRef<number | null>(null);
   const triggered = useRef<'none' | 'correct' | 'skip'>('none');
@@ -136,6 +149,8 @@ export function useTiltControl(
       return;
     }
 
+    neutral.current = calibratedNeutral;
+
     const resetZone = Math.min(upThreshold, downThreshold) * RESET_RATIO;
 
     const handler = (e: DeviceOrientationEvent) => {
@@ -147,7 +162,7 @@ export function useTiltControl(
         neutral.current = pitch;
         return;
       }
-      const delta = wrappedPitchDelta(pitch, neutral.current);
+      const delta = wrappedPitchDelta(pitch, neutral.current, pitchPeriodForAngle(angle));
       const now = performance.now();
 
       if (triggered.current === 'none') {
@@ -177,7 +192,7 @@ export function useTiltControl(
 
     window.addEventListener('deviceorientation', handler);
     return () => window.removeEventListener('deviceorientation', handler);
-  }, [active, upThreshold, downThreshold]);
+  }, [active, upThreshold, downThreshold, calibratedNeutral]);
 }
 
 /** Samples pitch briefly and averages it — used to capture a calibration neutral. */
@@ -226,8 +241,9 @@ export function useCalibrationReps(
 
     const handler = (e: DeviceOrientationEvent) => {
       if (e.beta === null || e.beta === undefined || e.gamma === null || e.gamma === undefined) return;
-      const pitch = screenRelativePitch(e.beta, e.gamma, getOrientationAngle());
-      const delta = wrappedPitchDelta(pitch, neutral);
+      const angle = getOrientationAngle();
+      const pitch = screenRelativePitch(e.beta, e.gamma, angle);
+      const delta = wrappedPitchDelta(pitch, neutral, pitchPeriodForAngle(angle));
       const raw = direction === 'up' ? delta : -delta;
 
       if (raw >= REP_START_DEG) {

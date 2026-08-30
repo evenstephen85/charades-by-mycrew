@@ -40,6 +40,7 @@ interface RuntimeGame {
   sessionScores: Record<string, number>;
   inputMode: InputMode;
   pausedScreen: Screen;
+  timeLeft: number | null;
   finaleRevealed: boolean;
 }
 
@@ -79,6 +80,7 @@ type Action =
   | { type: 'END_GAME'; nextScreen: 'pack-select' | 'team-setup' }
   | { type: 'CLEAR_SCORES' }
   | { type: 'MARK_FINALE_REVEALED' }
+  | { type: 'SET_TIME_LEFT'; seconds: number | null }
   | { type: 'DISCARD_AND_CHOOSE_PACK'; choice: PackChoice }
   | { type: 'LOAD_SNAPSHOT'; snapshot: ActiveGameSnapshot };
 
@@ -100,6 +102,7 @@ function snapshotFromGame(game: RuntimeGame, screen: Screen): ActiveGameSnapshot
     allTurnResults: game.allTurnResults,
     sessionScores: game.sessionScores,
     inputMode: game.inputMode,
+    timeLeft: game.timeLeft,
     finaleRevealed: game.finaleRevealed,
   };
 }
@@ -116,6 +119,7 @@ function gameFromSnapshot(snapshot: ActiveGameSnapshot): RuntimeGame {
     sessionScores: snapshot.sessionScores,
     inputMode: snapshot.inputMode,
     pausedScreen: snapshot.screen,
+    timeLeft: snapshot.timeLeft ?? null,
     finaleRevealed: snapshot.finaleRevealed ?? snapshot.screen === 'final-results',
   };
 }
@@ -163,17 +167,18 @@ function reducer(state: State, action: Action): State {
       return { ...state, screen: action.screen };
 
     case 'OPEN_SETTINGS': {
-      // Leaving 'playing' remounts it fresh on return (timer/word progress can't
-      // survive that), so treat it like pausing home: restart the turn cleanly.
-      if (state.screen === 'playing' && state.game) {
-        return {
-          ...state,
-          screen: 'settings',
-          previousScreen: 'get-ready',
-          game: { ...state.game, currentTurn: null, currentWord: null },
-        };
-      }
-      return { ...state, screen: 'settings', previousScreen: state.screen };
+      // The turn is preserved: PlayingScreen writes its remaining seconds into
+      // game.timeLeft on every tick, so coming back picks the round up where it
+      // was rather than restarting it. pausedScreen is pinned to the gameplay
+      // screen being left, so a later Home -> Resume returns to the round and
+      // not to Settings.
+      const leavingGameplay = state.game && GAMEPLAY_SCREENS.includes(state.screen);
+      return {
+        ...state,
+        screen: 'settings',
+        previousScreen: state.screen,
+        game: leavingGameplay ? { ...state.game!, pausedScreen: state.screen } : state.game,
+      };
     }
 
     case 'CLOSE_SETTINGS':
@@ -255,6 +260,7 @@ function reducer(state: State, action: Action): State {
           sessionScores,
           inputMode: 'buttons',
           pausedScreen: 'get-ready',
+          timeLeft: null,
           finaleRevealed: false,
         },
       };
@@ -281,6 +287,7 @@ function reducer(state: State, action: Action): State {
           wordQueue: rest,
           currentWord: currentWord ?? null,
           currentTurn: { teamId, correct: [], skipped: [] },
+          timeLeft: state.game.config.roundSeconds,
         },
       };
     }
@@ -336,6 +343,7 @@ function reducer(state: State, action: Action): State {
           },
           currentTurn: null,
           currentWord: null,
+          timeLeft: null,
         },
       };
     }
@@ -355,16 +363,17 @@ function reducer(state: State, action: Action): State {
 
     case 'PAUSE_HOME': {
       if (!state.game) return { ...state, screen: 'pack-select' };
-      const resumeAt = state.screen === 'playing' ? 'get-ready' : state.screen;
+      // Resume returns to exactly where the player was -- including a live
+      // round, with its remaining time, word and mid-round tally intact. When
+      // Home is pressed from Settings, state.screen is 'settings', so fall back
+      // to the gameplay screen already recorded on the way in.
+      const resumeAt = GAMEPLAY_SCREENS.includes(state.screen)
+        ? state.screen
+        : state.game.pausedScreen;
       return {
         ...state,
         screen: 'pack-select',
-        game: {
-          ...state.game,
-          pausedScreen: resumeAt,
-          currentTurn: resumeAt === 'get-ready' ? null : state.game.currentTurn,
-          currentWord: resumeAt === 'get-ready' ? null : state.game.currentWord,
-        },
+        game: { ...state.game, pausedScreen: resumeAt },
       };
     }
 
@@ -378,6 +387,11 @@ function reducer(state: State, action: Action): State {
 
     case 'CLEAR_SCORES':
       return { ...state, teams: zeroScores(state.teams) };
+
+    case 'SET_TIME_LEFT': {
+      if (!state.game || state.game.timeLeft === action.seconds) return state;
+      return { ...state, game: { ...state.game, timeLeft: action.seconds } };
+    }
 
     case 'MARK_FINALE_REVEALED': {
       if (!state.game || state.game.finaleRevealed) return state;
@@ -425,6 +439,7 @@ interface GameContextValue {
   endGame: (nextScreen: 'pack-select' | 'team-setup') => void;
   clearScores: () => void;
   markFinaleRevealed: () => void;
+  setTimeLeft: (seconds: number | null) => void;
   loadSnapshot: (snapshot: ActiveGameSnapshot) => void;
 }
 
@@ -448,7 +463,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // because state.game is null — only explicit game-ending actions do that.
     if (state.game && GAMEPLAY_SCREENS.includes(state.screen)) {
       saveActiveGame(snapshotFromGame(state.game, state.screen));
-    } else if (state.game && state.screen === 'pack-select') {
+    } else if (state.game) {
       saveActiveGame(snapshotFromGame(state.game, state.game.pausedScreen));
     }
   }, [state.game, state.screen]);
@@ -489,6 +504,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       },
       clearScores: () => dispatch({ type: 'CLEAR_SCORES' }),
       markFinaleRevealed: () => dispatch({ type: 'MARK_FINALE_REVEALED' }),
+      setTimeLeft: (seconds) => dispatch({ type: 'SET_TIME_LEFT', seconds }),
       loadSnapshot: (snapshot) => dispatch({ type: 'LOAD_SNAPSHOT', snapshot }),
     }),
     [state],

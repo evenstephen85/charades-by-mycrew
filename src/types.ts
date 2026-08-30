@@ -23,6 +23,9 @@ export interface GameSettings {
   soundEnabled: boolean;
   tiltUpThreshold: number;
   tiltDownThreshold: number;
+  /** Screen-relative pitch of the phone held against the forehead, captured
+   *  during calibration. Null until the player has calibrated. */
+  tiltNeutral: number | null;
   theme: ThemeColors;
 }
 
@@ -60,6 +63,9 @@ export interface ActiveGameSnapshot {
   allTurnResults: TurnResult[];
   sessionScores: Record<string, number>;
   inputMode: InputMode;
+  /** Seconds left in the turn that was in progress, so leaving mid-round and
+   *  coming back resumes the same turn rather than restarting it. */
+  timeLeft: number | null;
   /** True once the drumroll/winner reveal has played, so restoring a finished
    *  game shows the scores straight away instead of replaying the fanfare. */
   finaleRevealed: boolean;
