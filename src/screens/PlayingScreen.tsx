@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../state/GameContext';
 import { useOrientationLock } from '../lib/orientation';
-import { useOrientationDebug, useTiltControl } from '../lib/motion';
+import { useTiltControl } from '../lib/motion';
 import { playBuzzer, playCorrect, playCountdownTick, playGo, playWarning, playWhoosh } from '../lib/sound';
 import { formatTime } from '../lib/util';
 import { InGameMenu } from '../components/InGameMenu';
@@ -68,7 +68,6 @@ export function PlayingScreen() {
     state.settings.tiltUpThreshold,
     state.settings.tiltDownThreshold,
   );
-  const debug = useOrientationDebug(phase === 'active');
 
   if (!game || !game.currentTurn) return null;
 
@@ -103,13 +102,6 @@ export function PlayingScreen() {
           </button>
         )}
       </div>
-
-      {debug && (
-        <div className="debug-readout">
-          α {debug.alpha?.toFixed(1) ?? '—'} · β {debug.beta?.toFixed(1) ?? '—'} · γ{' '}
-          {debug.gamma?.toFixed(1) ?? '—'} · angle {debug.angle} · pitch {debug.pitch?.toFixed(1) ?? '—'}
-        </div>
-      )}
     </div>
   );
 }
