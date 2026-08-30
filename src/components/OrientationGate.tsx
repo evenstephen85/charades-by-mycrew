@@ -20,7 +20,11 @@ interface OrientationGateProps {
   need: 'portrait' | 'landscape';
 }
 
-export function OrientationGate({ need }: OrientationGateProps) {
+/**
+ * True while the phone is held the wrong way for this screen. Screens use it to
+ * hold their own logic -- a countdown must not tick away behind the gate.
+ */
+export function useWrongOrientation(need: 'portrait' | 'landscape'): boolean {
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
@@ -30,6 +34,12 @@ export function OrientationGate({ need }: OrientationGateProps) {
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   }, [need]);
+
+  return blocked;
+}
+
+export function OrientationGate({ need }: OrientationGateProps) {
+  const blocked = useWrongOrientation(need);
 
   if (!blocked) return null;
 

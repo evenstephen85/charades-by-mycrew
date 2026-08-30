@@ -3,12 +3,15 @@ import { useGame } from '../state/GameContext';
 import { detectTiltSupport, requestMotionPermission } from '../lib/motion';
 import { unlockAudio } from '../lib/sound';
 import { InGameMenu } from '../components/InGameMenu';
+import { useWrongOrientation } from '../components/OrientationGate';
 import { CheckIcon, ArrowIcon } from '../components/icons';
 
 export function GetReadyScreen() {
   const { state, beginTurn, setInputMode } = useGame();
   const game = state.game;
   const [preparing, setPreparing] = useState(false);
+  // The round is landscape-only, so don't let it be started from portrait.
+  const wrongWayUp = useWrongOrientation('landscape');
   if (!game) return null;
 
   const team = state.teams.find((t) => t.id === game.turnOrder[game.turnIndex]);
@@ -55,8 +58,12 @@ export function GetReadyScreen() {
         </div>
       </div>
 
-      <button className="btn btn-primary btn-block btn-lg" onClick={handleReady} disabled={preparing}>
-        {preparing ? 'Getting ready…' : "I'm Ready!"}
+      <button
+        className="btn btn-primary btn-block btn-lg"
+        onClick={handleReady}
+        disabled={preparing || wrongWayUp}
+      >
+        {wrongWayUp ? 'Turn Phone Sideways' : preparing ? 'Getting ready…' : "I'm Ready!"}
       </button>
     </div>
   );

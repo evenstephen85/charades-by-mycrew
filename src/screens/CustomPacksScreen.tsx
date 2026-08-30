@@ -19,13 +19,43 @@ export function CustomPacksScreen() {
     addCustomWord,
     removeCustomWord,
     deleteCustomPack,
+    editCustomPack,
   } = useGame();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // Opening from a pack's edit button drops straight into that pack.
+  const [editingId, setEditingId] = useState<string | null>(state.editingPackId);
   const [draftWord, setDraftWord] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const editing = state.customPacks.find((p) => p.id === editingId) ?? null;
+
+  // A plain render helper, not a component: declaring a component inside render
+  // remounts it (and resets its state) on every pass.
+  function renderDeleteConfirm() {
+    const target = state.customPacks.find((p) => p.id === confirmDelete);
+    return (
+      <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+        <div className="modal-card stack" onClick={(e) => e.stopPropagation()}>
+          <h2>Delete pack?</h2>
+          <p className="subtitle">"{target?.name}" and its words will be gone for good.</p>
+          <button
+            className="btn btn-danger btn-block"
+            onClick={() => {
+              const id = confirmDelete!;
+              setConfirmDelete(null);
+              if (editingId === id) { setEditingId(null); editCustomPack(null); }
+              deleteCustomPack(id);
+            }}
+          >
+            Delete
+          </button>
+          <button className="btn btn-ghost btn-block" onClick={() => setConfirmDelete(null)}>
+            Keep It
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   function handleCreate() {
     const name = `My Pack ${state.customPacks.length + 1}`;
@@ -42,7 +72,7 @@ export function CustomPacksScreen() {
     return (
       <div className="screen custom-packs-screen">
         <div className="top-bar">
-          <button className="icon-btn" onClick={() => setEditingId(null)} aria-label="Back">
+          <button className="icon-btn" onClick={() => { setEditingId(null); editCustomPack(null); }} aria-label="Back">
             <ArrowIcon size={20} style={{ transform: 'rotate(180deg)' }} />
           </button>
           <h2>Edit Pack</h2>
@@ -102,9 +132,19 @@ export function CustomPacksScreen() {
           </div>
         </div>
 
-        <button className="btn btn-primary btn-block" onClick={() => setEditingId(null)}>
-          Done
-        </button>
+        <div className="editor-actions">
+          <button className="btn btn-danger" onClick={() => setConfirmDelete(editing.id)}>
+            Delete Pack
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => { setEditingId(null); editCustomPack(null); }}
+          >
+            Done
+          </button>
+        </div>
+
+        {confirmDelete && renderDeleteConfirm()}
       </div>
     );
   }
@@ -155,29 +195,7 @@ export function CustomPacksScreen() {
         Done
       </button>
 
-      {confirmDelete && (
-        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="modal-card stack" onClick={(e) => e.stopPropagation()}>
-            <h2>Delete pack?</h2>
-            <p className="subtitle">
-              "{state.customPacks.find((p) => p.id === confirmDelete)?.name}" and its words will be
-              gone for good.
-            </p>
-            <button
-              className="btn btn-primary btn-block"
-              onClick={() => {
-                deleteCustomPack(confirmDelete);
-                setConfirmDelete(null);
-              }}
-            >
-              Delete
-            </button>
-            <button className="btn btn-ghost btn-block" onClick={() => setConfirmDelete(null)}>
-              Keep It
-            </button>
-          </div>
-        </div>
-      )}
+      {confirmDelete && renderDeleteConfirm()}
     </div>
   );
 }

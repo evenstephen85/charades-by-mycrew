@@ -16,7 +16,7 @@ const THRESHOLD_MARGIN = 0.6;
 const THRESHOLD_MIN = 5;
 const THRESHOLD_MAX = 85;
 
-type Step = 'settings' | 'intro' | 'capturing' | 'reps' | 'result' | 'error';
+type Step = 'settings' | 'capturing' | 'levelling' | 'reps' | 'result' | 'error';
 
 export interface TiltValues {
   up: number;
@@ -70,6 +70,24 @@ export function TiltCalibration({ values, onChange, onClose }: TiltCalibrationPr
       return next;
     });
   });
+
+  /**
+   * Captures just the level ("forehead") position. The up/down angles are
+   * measured *from* this, so if it's wrong every gesture has to travel too far
+   * in one direction -- worth being able to reset on its own without redoing
+   * the whole rep sequence.
+   */
+  async function setLevel() {
+    setBefore({ ...values });
+    setStep('levelling');
+    const granted = await requestMotionPermission();
+    if (!granted) { setStep('error'); return; }
+    const value = await captureNeutralPitch(700);
+    if (value === null) { setStep('error'); return; }
+    onChange({ neutral: value });
+    playTiltUpTone();
+    setStep('settings');
+  }
 
   async function startCalibration() {
     setBefore({ ...values });
@@ -153,12 +171,18 @@ export function TiltCalibration({ values, onChange, onClose }: TiltCalibrationPr
             </div>
 
             <p className="subtitle">
-              Smaller angles trigger sooner. Forehead position:{' '}
-              {values.neutral === null ? 'not calibrated' : `${values.neutral.toFixed(0)}°`}
+              Smaller angles trigger sooner. Level (forehead) position:{' '}
+              {values.neutral === null ? 'not set' : `${values.neutral.toFixed(0)}°`}
+              {values.neutral === null
+                ? ' — tilt is measured from wherever you start the turn.'
+                : ' — hold the phone the way you play, then set it.'}
             </p>
 
-            <button className="btn btn-primary btn-block" onClick={startCalibration}>
-              Run Calibration
+            <button className="btn btn-primary btn-block" onClick={setLevel}>
+              Set Level Position
+            </button>
+            <button className="btn btn-block" onClick={startCalibration}>
+              Run Full Calibration
             </button>
             <button
               className="btn btn-block"
@@ -177,6 +201,14 @@ export function TiltCalibration({ values, onChange, onClose }: TiltCalibrationPr
                 Undo Last Calibration
               </button>
             )}
+          </div>
+        )}
+
+        {step === 'levelling' && (
+          <div className="stack">
+            <p className="subtitle">
+              Hold the phone against your forehead exactly as you'd play, and keep still…
+            </p>
           </div>
         )}
 

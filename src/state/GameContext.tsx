@@ -18,6 +18,7 @@ import {
   loadLastConfig,
   loadSettings,
   loadTeams,
+  defaultSettings,
   saveActiveGame,
   saveLastConfig,
   saveSettings,
@@ -61,6 +62,8 @@ interface State {
   game: RuntimeGame | null;
   draftPackChoice: PackChoice | null;
   customPacks: CustomPack[];
+  /** Pack the custom-pack screen should open straight into, if any. */
+  editingPackId: string | null;
 }
 
 /** Built-in packs and the player's own resolve through the same call. */
@@ -119,6 +122,8 @@ type Action =
   | { type: 'RESUME_PAUSED_GAME' }
   | { type: 'END_GAME'; nextScreen: 'pack-select' | 'team-setup' }
   | { type: 'CLEAR_SCORES' }
+  | { type: 'RESET_EVERYTHING' }
+  | { type: 'EDIT_CUSTOM_PACK'; id: string | null }
   | { type: 'MARK_FINALE_REVEALED' }
   | { type: 'SET_TIME_LEFT'; seconds: number | null }
   | { type: 'CREATE_CUSTOM_PACK'; name: string }
@@ -206,6 +211,7 @@ function initialState(): State {
     game: null,
     draftPackChoice: null,
     customPacks: loadCustomPacks(),
+    editingPackId: null,
   };
 }
 
@@ -440,6 +446,13 @@ function reducer(state: State, action: Action): State {
     case 'END_GAME':
       return { ...state, screen: action.nextScreen, game: null, draftPackChoice: null };
 
+    case 'EDIT_CUSTOM_PACK':
+      return {
+        ...state,
+        editingPackId: action.id,
+        screen: action.id ? 'custom-packs' : state.screen,
+      };
+
     case 'CREATE_CUSTOM_PACK': {
       const pack: CustomPack = { id: `custom-${makeId()}`, name: action.name.trim() || 'My Pack', words: [] };
       return { ...state, customPacks: [...state.customPacks, pack] };
@@ -480,6 +493,20 @@ function reducer(state: State, action: Action): State {
 
     case 'CLEAR_SCORES':
       return { ...state, teams: zeroScores(state.teams) };
+
+    // Back to a fresh install: default teams, default settings, no custom packs,
+    // no saved game. Deliberately keeps `onboarded` so the tour doesn't replay.
+    case 'RESET_EVERYTHING':
+      return {
+        screen: 'pack-select',
+        previousScreen: null,
+        teams: ensureMinTeams([]),
+        settings: { ...defaultSettings, onboarded: state.settings.onboarded },
+        game: null,
+        draftPackChoice: null,
+        customPacks: [],
+        editingPackId: null,
+      };
 
     case 'SET_TIME_LEFT': {
       if (!state.game || state.game.timeLeft === action.seconds) return state;
@@ -531,9 +558,11 @@ interface GameContextValue {
   resumePausedGame: () => void;
   endGame: (nextScreen: 'pack-select' | 'team-setup') => void;
   clearScores: () => void;
+  resetEverything: () => void;
   markFinaleRevealed: () => void;
   setTimeLeft: (seconds: number | null) => void;
   createCustomPack: (name: string) => void;
+  editCustomPack: (id: string | null) => void;
   renameCustomPack: (id: string, name: string) => void;
   addCustomWord: (id: string, word: string) => void;
   removeCustomWord: (id: string, index: number) => void;
@@ -605,9 +634,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'END_GAME', nextScreen });
       },
       clearScores: () => dispatch({ type: 'CLEAR_SCORES' }),
+      resetEverything: () => {
+        clearActiveGame();
+        dispatch({ type: 'RESET_EVERYTHING' });
+      },
       markFinaleRevealed: () => dispatch({ type: 'MARK_FINALE_REVEALED' }),
       setTimeLeft: (seconds) => dispatch({ type: 'SET_TIME_LEFT', seconds }),
       createCustomPack: (name) => dispatch({ type: 'CREATE_CUSTOM_PACK', name }),
+      editCustomPack: (id) => dispatch({ type: 'EDIT_CUSTOM_PACK', id }),
       renameCustomPack: (id, name) => dispatch({ type: 'RENAME_CUSTOM_PACK', id, name }),
       addCustomWord: (id, word) => dispatch({ type: 'ADD_CUSTOM_WORD', id, word }),
       removeCustomWord: (id, index) => dispatch({ type: 'REMOVE_CUSTOM_WORD', id, index }),

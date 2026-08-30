@@ -51,21 +51,31 @@ function Root() {
   // Capture phase so it still fires for handlers that stop propagation.
   const unlockedRef = useRef(false);
   useEffect(() => {
-    const onPointerDown = (e: PointerEvent) => {
-      if (!unlockedRef.current) {
-        unlockedRef.current = true;
-        unlockAudio();
-        requestFullscreen();
-      }
-      if (!soundEnabled) return;
+    // Unlocking rides on pointerdown -- the earliest gesture, and the one iOS
+    // wants -- but it makes no sound of its own.
+    const onPointerDown = () => {
+      if (unlockedRef.current) return;
+      unlockedRef.current = true;
+      unlockAudio();
+      requestFullscreen();
+    };
+    window.addEventListener('pointerdown', onPointerDown, true);
+    return () => window.removeEventListener('pointerdown', onPointerDown, true);
+  }, []);
+
+  // The boop rides on click, not pointerdown: pressing a button and dragging to
+  // scroll never becomes a click, so it no longer boops at a scroll.
+  useEffect(() => {
+    if (!soundEnabled) return;
+    const onClick = (e: MouseEvent) => {
       const target = e.target as Element | null;
       const control = target?.closest?.('button, input, [role="button"]');
       if (!control || control.matches('[data-no-boop], [data-no-boop] *')) return;
       if (control instanceof HTMLButtonElement && control.disabled) return;
       playBoop();
     };
-    window.addEventListener('pointerdown', onPointerDown, true);
-    return () => window.removeEventListener('pointerdown', onPointerDown, true);
+    window.addEventListener('click', onClick, true);
+    return () => window.removeEventListener('click', onClick, true);
   }, [soundEnabled]);
 
   const [finalPhaseColor, setFinalPhaseColor] = useState<string | null>(null);

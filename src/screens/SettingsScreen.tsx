@@ -13,11 +13,12 @@ type PickerTarget = 'background' | 'accent' | null;
 type InfoTarget = 'rules' | 'about' | null;
 
 export function SettingsScreen() {
-  const { state, updateSettings, setScreen, closeSettings, pauseHome } = useGame();
+  const { state, updateSettings, setScreen, closeSettings, pauseHome, resetEverything } = useGame();
   const { settings } = state;
   const [picker, setPicker] = useState<PickerTarget>(null);
   const [calibrating, setCalibrating] = useState(false);
   const [info, setInfo] = useState<InfoTarget>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   function applyColor(hex: string) {
     if (picker === 'background') {
@@ -88,9 +89,6 @@ export function SettingsScreen() {
             Manage Teams
           </button>
 
-          <button className="btn setting-cell" onClick={() => setScreen('custom-packs')}>
-            Custom Packs
-          </button>
 
           <button className="btn setting-cell" onClick={() => setCalibrating(true)}>
             Tilt Controls
@@ -102,6 +100,10 @@ export function SettingsScreen() {
 
           <button className="btn setting-cell" onClick={() => setInfo('about')}>
             About
+          </button>
+
+          <button className="btn setting-cell btn-danger" onClick={() => setConfirmReset(true)}>
+            Reset All
           </button>
 
           {/* Full width across whatever column count the grid is using. */}
@@ -150,6 +152,30 @@ export function SettingsScreen() {
                 onChange={(e) => applyColor(e.target.value)}
               />
             </label>
+          </div>
+        </div>
+      )}
+
+      {confirmReset && (
+        <div className="modal-overlay" onClick={() => setConfirmReset(false)}>
+          <div className="modal-card stack" onClick={(e) => e.stopPropagation()}>
+            <h2>Reset everything?</h2>
+            <p className="subtitle">
+              Teams, scores, colours, tilt settings and any packs you wrote will all go back to
+              how they started. This can't be undone.
+            </p>
+            <button
+              className="btn btn-danger btn-block"
+              onClick={() => {
+                setConfirmReset(false);
+                resetEverything();
+              }}
+            >
+              Reset Everything
+            </button>
+            <button className="btn btn-ghost btn-block" onClick={() => setConfirmReset(false)}>
+              Cancel
+            </button>
           </div>
         </div>
       )}

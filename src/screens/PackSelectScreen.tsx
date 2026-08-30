@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useGame } from '../state/GameContext';
 import { WORD_PACKS, ALL_PACK_IDS } from '../data/packs';
-import { MenuIcon } from '../components/icons';
+import { MenuIcon, PencilIcon } from '../components/icons';
 import { ResumePrompt } from '../components/ResumePrompt';
 import { unlockAudio } from '../lib/sound';
 import type { PackChoice } from '../state/GameContext';
 
 export function PackSelectScreen() {
-  const { state, setScreen, openSettings, choosePack, discardAndChoosePack, resumePausedGame } = useGame();
+  const { state, setScreen, openSettings, choosePack, discardAndChoosePack, resumePausedGame, editCustomPack } = useGame();
   // A pack with no words in it would deal an empty turn, so it isn't offered.
   const playableCustom = state.customPacks.filter((p) => p.words.length > 0);
   const allPackIds = [...ALL_PACK_IDS, ...playableCustom.map((p) => p.id)];
@@ -54,13 +54,21 @@ export function PackSelectScreen() {
           </button>
         ))}
         {playableCustom.map((pack) => (
-          <button
-            key={pack.id}
-            className="pack-button pack-button-custom"
-            onClick={() => handlePick({ selectedPackIds: [pack.id], useAllPacks: false })}
-          >
-            {pack.name}
-          </button>
+          <div className="pack-tile-wrap" key={pack.id}>
+            <button
+              className="pack-button pack-button-custom"
+              onClick={() => handlePick({ selectedPackIds: [pack.id], useAllPacks: false })}
+            >
+              {pack.name}
+            </button>
+            <button
+              className="pack-edit-btn"
+              onClick={() => editCustomPack(pack.id)}
+              aria-label={`Edit ${pack.name}`}
+            >
+              <PencilIcon size={16} />
+            </button>
+          </div>
         ))}
         <button className="pack-button pack-button-new" onClick={() => setScreen('custom-packs')}>
           + Your Own Pack

@@ -5,10 +5,10 @@ import { useTiltControl } from '../lib/motion';
 import { playBuzzer, playCorrect, playCountdownTick, playGo, playWarning, playWhoosh } from '../lib/sound';
 import { formatTime } from '../lib/util';
 import { InGameMenu } from '../components/InGameMenu';
-import { OrientationGate } from '../components/OrientationGate';
+import { OrientationGate, useWrongOrientation } from '../components/OrientationGate';
 import { CheckIcon, ArrowIcon } from '../components/icons';
 
-type Phase = 'countdown' | 'active';
+type Phase = 'countdown' | 'resuming' | 'active';
 
 export function PlayingScreen() {
   useOrientationLock('landscape');
@@ -16,7 +16,12 @@ export function PlayingScreen() {
   const game = state.game;
   const soundOn = state.settings.soundEnabled;
 
-  const [phase, setPhase] = useState<Phase>('countdown');
+  // A turn picked back up mid-round gets a blank beat, not a fresh 3-2-1: the
+  // clock is already partway down, so counting in again reads as a restart.
+  // Nothing starts ticking until the phone is actually held in landscape.
+  const wrongWayUp = useWrongOrientation('landscape');
+  const resumed = !!game && game.timeLeft !== null && game.timeLeft < game.config.roundSeconds;
+  const [phase, setPhase] = useState<Phase>(resumed ? 'resuming' : 'countdown');
   const [countdown, setCountdown] = useState(3);
   const [timeLeft, setTimeLeft] = useState(game?.timeLeft ?? game?.config.roundSeconds ?? 60);
   const endedRef = useRef(false);
@@ -29,7 +34,13 @@ export function PlayingScreen() {
   }, [phase, timeLeft]);
 
   useEffect(() => {
-    if (phase !== 'countdown') return;
+    if (phase !== 'resuming' || wrongWayUp) return;
+    const t = setTimeout(() => setPhase('active'), 1000);
+    return () => clearTimeout(t);
+  }, [phase, wrongWayUp]);
+
+  useEffect(() => {
+    if (phase !== 'countdown' || wrongWayUp) return;
     if (countdown <= 0) {
       if (soundOn) playGo();
       setPhase('active');
@@ -38,10 +49,10 @@ export function PlayingScreen() {
     if (soundOn) playCountdownTick();
     const t = setTimeout(() => setCountdown((c) => c - 1), 700);
     return () => clearTimeout(t);
-  }, [phase, countdown, soundOn]);
+  }, [phase, countdown, soundOn, wrongWayUp]);
 
   useEffect(() => {
-    if (phase !== 'active') return;
+    if (phase !== 'active' || wrongWayUp) return;
     if (timeLeft <= 0) {
       if (!endedRef.current) {
         endedRef.current = true;
@@ -54,7 +65,7 @@ export function PlayingScreen() {
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, timeLeft, soundOn]);
+  }, [phase, timeLeft, soundOn, wrongWayUp]);
 
   const handleCorrect = () => {
     if (phase !== 'active') return;
@@ -67,7 +78,7 @@ export function PlayingScreen() {
     answer('skip');
   };
 
-  const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt';
+  const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt' && !wrongWayUp;
   useTiltControl(
     tiltActive,
     handleCorrect,
@@ -94,11 +105,11 @@ export function PlayingScreen() {
 
       <div className="playing-body">
         <div className="center-col word-area">
-          {phase === 'countdown' ? (
+          {phase === 'countdown' && (
             <div className="word-display">{countdown > 0 ? countdown : 'GO!'}</div>
-          ) : (
-            <div className="word-display">{game.currentWord ?? ''}</div>
           )}
+          {phase === 'resuming' && <div className="word-display">&nbsp;</div>}
+          {phase === 'active' && <div className="word-display">{game.currentWord ?? ''}</div>}
         </div>
 
         {phase === 'active' && game.inputMode === 'buttons' && (

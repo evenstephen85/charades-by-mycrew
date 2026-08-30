@@ -99,3 +99,18 @@ export function HomeIcon({ size = 22, color = 'currentColor', className, style }
     </svg>
   );
 }
+
+export function PencilIcon({ size = 20, color = 'currentColor', className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} style={style} aria-hidden="true">
+      <path
+        d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M14.5 6.5 17.5 9.5" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </svg>
+  );
+}

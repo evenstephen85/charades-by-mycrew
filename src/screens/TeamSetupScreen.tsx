@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useGame, MAX_TEAMS, MIN_TEAMS } from '../state/GameContext';
 import { loadLastConfig } from '../lib/storage';
 import { TEAM_COLORS } from '../lib/teamColors';
-import { contrastText } from '../lib/color';
 import { TrashIcon, ArrowIcon, CloseIcon } from '../components/icons';
 import type { GameConfig } from '../types';
 
@@ -66,8 +65,11 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
 
       <div className="screen-body">
         <div className="team-setup-list">
+          {/* Headings mirror the row's columns exactly, so each label is centred
+              over the control it names rather than over the colour swatch. */}
           {mode === 'manage' && (
             <div className="team-setup-headings">
+              <span className="team-heading-swatch" />
               <span className="team-heading-name">Team</span>
               <span className="team-heading-score">Score</span>
               <span className="team-heading-spacer" />
@@ -93,10 +95,7 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
                 />
               )}
               {mode === 'manage' && (
-                <div
-                  className="score-adjust"
-                  style={{ background: team.color, color: contrastText(team.color) }}
-                >
+                <div className="score-adjust">
                   <button
                     onClick={() => adjustTeamScore(team.id, -1)}
                     disabled={team.score <= 0}
