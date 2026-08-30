@@ -28,12 +28,10 @@ export function GetReadyScreen() {
 
   return (
     <div className="screen get-ready-screen">
-      <div className="top-bar">
-        <h2>{headerTitle}</h2>
-        <InGameMenu />
-      </div>
+      <InGameMenu floating />
 
       <div className="center-col">
+        <h1 className="screen-title">{headerTitle}</h1>
         <div className="card stack instruction-card">
           <p className="subtitle" style={{ textAlign: 'center' }}>Give the phone to your guesser.</p>
           <div className="tilt-instructions">

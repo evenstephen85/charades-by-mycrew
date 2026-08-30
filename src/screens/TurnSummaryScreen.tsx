@@ -28,12 +28,10 @@ export function TurnSummaryScreen() {
 
   return (
     <div className="screen turn-summary-screen">
-      <div className="top-bar">
-        <h2>{headerTitle}</h2>
-        <InGameMenu />
-      </div>
+      <InGameMenu floating />
 
       <div className="screen-body">
+        <h2 className="screen-title">{headerTitle}</h2>
         <div className={isFreeplay ? 'summary-columns two-col' : 'summary-columns'}>
           <div className="card stack">
             <div className="field-label">Got It ({result.correct.length})</div>

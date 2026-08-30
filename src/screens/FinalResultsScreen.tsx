@@ -62,10 +62,7 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
 
   return (
     <div className="screen final-results-screen">
-      <div className="top-bar">
-        <h2>{headerTitle}</h2>
-        <InGameMenu />
-      </div>
+      <InGameMenu floating />
 
       {phase === 'drumroll' && (
         <div className="center-col">
@@ -85,6 +82,7 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
         <>
           <div className="screen-body">
             <div className="center-col">
+              <h2 className="screen-title">{headerTitle}</h2>
               <p className="subtitle">Words Guessed</p>
               <h1 className="winner-name">{totalCorrect}</h1>
             </div>
@@ -104,6 +102,7 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
       {phase === 'scores' && !isFreeplay && (
         <>
           <div className="screen-body">
+            <h2 className="screen-title">{headerTitle}</h2>
             <div className="final-scores-grid">
               {standings.map((t) => (
                 <div className={`score-tile ${t.score === topScore ? 'leader' : ''}`} key={t.id}>

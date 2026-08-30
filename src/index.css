@@ -50,6 +50,7 @@ body {
 
 .screen {
   flex: 1;
+  position: relative;
   display: flex;
   flex-direction: column;
   max-width: 560px;
@@ -318,6 +319,23 @@ input[type='color'] {
   align-items: center;
   justify-content: center;
   color: var(--text);
+  flex-shrink: 0;
+}
+
+/* Gameplay screens carry no header band: the trigger overlays the top-right
+   corner so the content gets the full height of the screen. */
+.menu-trigger-floating {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 20;
+}
+
+/* A screen's title inside its content, now that gameplay has no header bar.
+   The side padding keeps centered text clear of the floating menu trigger. */
+.screen-title {
+  text-align: center;
+  padding: 0 50px;
   flex-shrink: 0;
 }
 
@@ -655,6 +673,11 @@ input[type='color'] {
 /* ---------- Playing screen ---------- */
 
 .playing-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -703,6 +726,7 @@ input[type='color'] {
 }
 
 .side-btn {
+  margin-top: 46px;
   flex: 0 0 30%;
   font-size: 1.3rem;
   display: flex;

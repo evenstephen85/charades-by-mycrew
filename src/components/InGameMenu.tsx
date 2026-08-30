@@ -4,9 +4,11 @@ import { MenuIcon, CloseIcon } from './icons';
 
 interface InGameMenuProps {
   onOpenChange?: (open: boolean) => void;
+  /** Overlay the trigger in the screen's top-right corner instead of sitting in the layout flow. */
+  floating?: boolean;
 }
 
-export function InGameMenu({ onOpenChange }: InGameMenuProps = {}) {
+export function InGameMenu({ onOpenChange, floating }: InGameMenuProps = {}) {
   const { openSettings, pauseHome } = useGame();
   const [open, setOpen] = useState(false);
 
@@ -18,7 +20,7 @@ export function InGameMenu({ onOpenChange }: InGameMenuProps = {}) {
   return (
     <>
       <button
-        className="menu-trigger"
+        className={floating ? 'menu-trigger menu-trigger-floating' : 'menu-trigger'}
         onClick={() => setOpenState(true)}
         aria-label="Open menu"
       >
