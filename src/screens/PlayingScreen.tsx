@@ -78,7 +78,10 @@ export function PlayingScreen() {
     answer('skip');
   };
 
-  const tiltActive = !!game && phase === 'active' && game.inputMode === 'tilt' && !wrongWayUp;
+  // Read live from settings, not just from what the turn started with: toggling
+  // on-screen buttons from the in-game menu takes effect the moment you return.
+  const usingButtons = state.settings.preferButtons || game?.inputMode === 'buttons';
+  const tiltActive = !!game && phase === 'active' && !usingButtons && !wrongWayUp;
   useTiltControl(
     tiltActive,
     handleCorrect,
@@ -95,7 +98,7 @@ export function PlayingScreen() {
       <OrientationGate need="landscape" />
       <div className="playing-top">
         <span className="correct-count">{game.currentTurn.correct.length}</span>
-        <span className={`timer-ring ${timeLeft <= 3 ? 'low' : ''}`}>
+        <span className={`timer-ring ${timeLeft <= 3 ? 'low' : timeLeft <= 5 ? 'warn' : ''}`}>
           {/* Always the time actually left: showing the full round during the
               count-in made a resumed turn look like it had reset. */}
           {formatTime(timeLeft)}
@@ -112,7 +115,7 @@ export function PlayingScreen() {
           {phase === 'active' && <div className="word-display">{game.currentWord ?? ''}</div>}
         </div>
 
-        {phase === 'active' && game.inputMode === 'buttons' && (
+        {phase === 'active' && usingButtons && (
           <div className="answer-bar">
             <button className="btn btn-skip answer-btn" onClick={handleSkip} data-no-boop>
               <ArrowIcon size={22} /> Skip

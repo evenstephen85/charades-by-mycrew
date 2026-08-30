@@ -47,7 +47,8 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
     const toWinner = setTimeout(() => {
       setPhase('winner');
       if (soundOn) playTaDa();
-      onPhaseColor(winners[0]?.color ?? null);
+      // A tie gets the split backdrop below instead of one team's wash.
+      onPhaseColor(winners.length === 1 ? winners[0]?.color ?? null : null);
     }, DRUMROLL_SECONDS * 1000);
     const toScores = setTimeout(() => setPhase('scores'), DRUMROLL_SECONDS * 1000 + WINNER_HOLD_MS);
     return () => {
@@ -78,10 +79,21 @@ export function FinalResultsScreen({ onPhaseColor }: FinalResultsScreenProps) {
       )}
 
       {phase === 'winner' && (
-        <div className="center-col">
-          <p className="subtitle">{winners.length > 1 ? "It's a tie between…" : 'The winner is…'}</p>
-          <h1 className="winner-name">{winners.map((w) => w.name).join(' & ')}</h1>
-        </div>
+        <>
+          {/* A tie belongs to everyone who tied: the screen is split between
+              their colours rather than picking one of them to wash it. */}
+          {winners.length > 1 && (
+            <div className="tie-split" aria-hidden="true">
+              {winners.map((w) => (
+                <span key={w.id} style={{ background: w.color }} />
+              ))}
+            </div>
+          )}
+          <div className="center-col">
+            <p className="subtitle">{winners.length > 1 ? "It's a tie between…" : 'The winner is…'}</p>
+            <h1 className="winner-name">{winners.map((w) => w.name).join(' & ')}</h1>
+          </div>
+        </>
       )}
 
       {phase === 'scores' && isFreeplay && (

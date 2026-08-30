@@ -64,18 +64,18 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
       </div>
 
       <div className="screen-body">
+        <div className="team-setup-columns">
+        {/* Outside the list: headings shouldn't scroll away, and inside it they
+            would eat one of the reserved team slots. */}
+        {mode === 'manage' && (
+          <div className="team-setup-headings">
+            <span className="team-heading-swatch" />
+            <span className="team-heading-name">Team</span>
+            <span className="team-heading-score">Score</span>
+            <span className="team-heading-spacer" />
+          </div>
+        )}
         <div className="team-setup-list">
-          {/* Headings mirror the row's columns exactly, so each label is centred
-              over the control it names rather than over the colour swatch. */}
-          {mode === 'manage' && (
-            <div className="team-setup-headings">
-              <span className="team-heading-swatch" />
-              <span className="team-heading-name">Team</span>
-              <span className="team-heading-score">Score</span>
-              <span className="team-heading-spacer" />
-            </div>
-          )}
-
           {state.teams.map((team) => (
             <div className="team-setup-row" key={team.id}>
               <button
@@ -159,6 +159,7 @@ export function TeamSetupScreen({ mode }: TeamSetupScreenProps) {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {mode === 'new-game' && (

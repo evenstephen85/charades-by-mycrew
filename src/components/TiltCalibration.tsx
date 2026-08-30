@@ -118,6 +118,15 @@ export function TiltCalibration({ values, onChange, onClose }: TiltCalibrationPr
     onChange({ [key]: next });
   }
 
+  // Level is an absolute angle, not a threshold, so it wraps rather than clamps.
+  function nudgeLevel(delta: number) {
+    const current = values.neutral ?? 0;
+    let next = current + delta;
+    if (next > 180) next -= 360;
+    if (next < -180) next += 360;
+    onChange({ neutral: Math.round(next) });
+  }
+
   return (
     <div className="modal-overlay" onClick={step === 'settings' ? onClose : undefined}>
       <div className="modal-card stack tilt-modal" onClick={(e) => e.stopPropagation()}>
@@ -170,12 +179,24 @@ export function TiltCalibration({ values, onChange, onClose }: TiltCalibrationPr
               </div>
             </div>
 
+            <div className="tilt-row">
+              <div className="tilt-row-label">
+                <span>Level</span>
+              </div>
+              <div className="dual-stepper compact">
+                <button onClick={() => nudgeLevel(-1)}>−</button>
+                <span className="value">
+                  {values.neutral === null ? '—' : `${values.neutral.toFixed(0)}°`}
+                </span>
+                <button onClick={() => nudgeLevel(1)}>+</button>
+              </div>
+            </div>
+
             <p className="subtitle">
-              Smaller angles trigger sooner. Level (forehead) position:{' '}
-              {values.neutral === null ? 'not set' : `${values.neutral.toFixed(0)}°`}
+              Smaller angles trigger sooner. Up and down are measured from Level —
               {values.neutral === null
-                ? ' — tilt is measured from wherever you start the turn.'
-                : ' — hold the phone the way you play, then set it.'}
+                ? ' unset, so tilt is measured from wherever the turn starts.'
+                : ' hold the phone the way you play, then capture it below.'}
             </p>
 
             <button className="btn btn-primary btn-block" onClick={setLevel}>

@@ -10,6 +10,7 @@ import { TiltCalibration } from '../components/TiltCalibration';
 import { RulesContent, AboutContent } from '../components/InfoContent';
 
 type PickerTarget = 'background' | 'accent' | null;
+type PanelTarget = 'colors' | null;
 type InfoTarget = 'rules' | 'about' | null;
 
 export function SettingsScreen() {
@@ -19,6 +20,7 @@ export function SettingsScreen() {
   const [calibrating, setCalibrating] = useState(false);
   const [info, setInfo] = useState<InfoTarget>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [panel, setPanel] = useState<PanelTarget>(null);
 
   function applyColor(hex: string) {
     if (picker === 'background') {
@@ -56,33 +58,20 @@ export function SettingsScreen() {
 
       <div className="screen-body">
         <div className="settings-grid">
+          {state.game && (
+            <button className="btn setting-cell setting-home" onClick={pauseHome}>
+              <HomeIcon size={20} />
+              Home
+            </button>
+          )}
+
           <div className="card setting-cell">
             <div className="field-label">Sound Effects</div>
             <Switch on={settings.soundEnabled} label="Toggle sound effects" noBoop onToggle={toggleSound} />
           </div>
 
-          <div className="card setting-cell">
-            <div className="field-label">Background Color</div>
-            <button
-              className="color-swatch-btn"
-              style={{ background: settings.theme.background }}
-              onClick={() => setPicker('background')}
-              aria-label="Change background color"
-            />
-          </div>
-
-          <div className="card setting-cell">
-            <div className="field-label">Accent Color</div>
-            <button
-              className="color-swatch-btn"
-              style={{ background: settings.theme.accent }}
-              onClick={() => setPicker('accent')}
-              aria-label="Change accent color"
-            />
-          </div>
-
-          <button className="btn setting-cell" onClick={() => updateSettings({ theme: defaultTheme })}>
-            Reset to Default Colors
+          <button className="btn setting-cell" onClick={() => setPanel('colors')}>
+            Colors
           </button>
 
           <button className="btn setting-cell" onClick={() => setScreen('team-setup')}>
@@ -105,20 +94,8 @@ export function SettingsScreen() {
           <button className="btn setting-cell btn-danger" onClick={() => setConfirmReset(true)}>
             Reset All
           </button>
-
-          {/* Full width across whatever column count the grid is using. */}
-          {state.game && (
-            <button className="btn setting-cell setting-home" onClick={pauseHome}>
-              <HomeIcon size={20} />
-              Home
-            </button>
-          )}
         </div>
       </div>
-
-      <button className="btn btn-primary btn-block" onClick={closeSettings}>
-        Done
-      </button>
 
       {picker && (
         <div className="modal-overlay" onClick={() => setPicker(null)}>
@@ -152,6 +129,43 @@ export function SettingsScreen() {
                 onChange={(e) => applyColor(e.target.value)}
               />
             </label>
+          </div>
+        </div>
+      )}
+
+      {panel === 'colors' && (
+        <div className="modal-overlay" onClick={() => setPanel(null)}>
+          <div className="modal-card stack" onClick={(e) => e.stopPropagation()}>
+            <div className="top-bar">
+              <h2>Colors</h2>
+              <button className="icon-btn" onClick={() => setPanel(null)} aria-label="Close">
+                <CloseIcon size={20} />
+              </button>
+            </div>
+
+            <div className="card setting-cell">
+              <div className="field-label">Background</div>
+              <button
+                className="color-swatch-btn"
+                style={{ background: settings.theme.background }}
+                onClick={() => setPicker('background')}
+                aria-label="Change background color"
+              />
+            </div>
+
+            <div className="card setting-cell">
+              <div className="field-label">Accent</div>
+              <button
+                className="color-swatch-btn"
+                style={{ background: settings.theme.accent }}
+                onClick={() => setPicker('accent')}
+                aria-label="Change accent color"
+              />
+            </div>
+
+            <button className="btn btn-block" onClick={() => updateSettings({ theme: defaultTheme })}>
+              Reset to Default Colors
+            </button>
           </div>
         </div>
       )}

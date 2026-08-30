@@ -107,7 +107,7 @@ export function TurnSummaryScreen() {
         )
       )}
 
-      <div className="summary-columns">
+      <div className="summary-columns summary-columns-inset">
         <div className="card stack">
           <div className="field-label summary-heading">
             <span>{result.correct.length} Correct</span>

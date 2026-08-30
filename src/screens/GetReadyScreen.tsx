@@ -16,7 +16,9 @@ export function GetReadyScreen() {
 
   const team = state.teams.find((t) => t.id === game.turnOrder[game.turnIndex]);
   const isFreeplay = game.config.teamIds.length === 1;
-  const headerTitle = isFreeplay ? 'Freeplay!' : `${team?.name}'s Turn`;
+  // A missing team (freeplay, or one deleted mid-game) must never render as
+  // "undefined's Turn".
+  const headerTitle = isFreeplay ? 'Next Player!' : team ? `${team.name}'s Turn` : 'Next Team!';
 
   async function handleReady() {
     setPreparing(true);
