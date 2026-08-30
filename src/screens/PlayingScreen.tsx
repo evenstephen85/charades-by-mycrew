@@ -25,6 +25,9 @@ export function PlayingScreen() {
   const [countdown, setCountdown] = useState(3);
   const [timeLeft, setTimeLeft] = useState(game?.timeLeft ?? game?.config.roundSeconds ?? 60);
   const endedRef = useRef(false);
+  // Tilt stays disarmed until the phone rests level for a second; say so, or the
+  // dead first moment just looks broken.
+  const [tiltArmed, setTiltArmed] = useState(false);
 
   // Mirror the clock into game state each tick so leaving the screen (Settings,
   // Home) and coming back resumes the same round instead of restarting it.
@@ -89,7 +92,12 @@ export function PlayingScreen() {
     state.settings.tiltUpThreshold,
     state.settings.tiltDownThreshold,
     state.settings.tiltNeutral,
+    () => setTiltArmed(true),
   );
+
+  useEffect(() => {
+    if (!tiltActive) setTiltArmed(false);
+  }, [tiltActive]);
 
   if (!game || !game.currentTurn) return null;
 
@@ -113,6 +121,7 @@ export function PlayingScreen() {
           )}
           {phase === 'resuming' && <div className="word-display">&nbsp;</div>}
           {phase === 'active' && <div className="word-display">{game.currentWord ?? ''}</div>}
+          {tiltActive && !tiltArmed && <p className="settle-hint">Hold steady…</p>}
         </div>
 
         {phase === 'active' && usingButtons && (

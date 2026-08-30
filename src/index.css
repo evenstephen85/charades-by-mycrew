@@ -481,6 +481,17 @@ input[type='color'] {
   padding: 20px;
 }
 
+/* One step above .modal-overlay, for a dialog opened from another dialog. */
+.modal-overlay-top {
+  z-index: 1100;
+}
+
+.settle-hint {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  opacity: 0.75;
+}
+
 .modal-card {
   background: var(--surface);
   color: var(--text);

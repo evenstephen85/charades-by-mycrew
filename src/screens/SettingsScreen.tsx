@@ -7,6 +7,7 @@ import { TEAM_COLORS } from '../lib/teamColors';
 import { playBoop } from '../lib/sound';
 import { ArrowIcon, CloseIcon, HomeIcon } from '../components/icons';
 import { TiltCalibration } from '../components/TiltCalibration';
+import { deviceLikelyHasTilt } from '../lib/motion';
 import { RulesContent, AboutContent } from '../components/InfoContent';
 
 type PickerTarget = 'background' | 'accent' | null;
@@ -79,9 +80,13 @@ export function SettingsScreen() {
           </button>
 
 
-          <button className="btn setting-cell" onClick={() => setCalibrating(true)}>
-            Tilt Controls
-          </button>
+          {/* Desktop has no sensor to calibrate, and falls back to the
+              on-screen buttons on its own. */}
+          {deviceLikelyHasTilt() && (
+            <button className="btn setting-cell" onClick={() => setCalibrating(true)}>
+              Tilt Controls
+            </button>
+          )}
 
           <button className="btn setting-cell" onClick={() => setInfo('rules')}>
             Rules
@@ -97,8 +102,10 @@ export function SettingsScreen() {
         </div>
       </div>
 
+      {/* Sits above the Colors panel that opened it -- same overlay class would
+          leave it behind, since that panel renders later in the tree. */}
       {picker && (
-        <div className="modal-overlay" onClick={() => setPicker(null)}>
+        <div className="modal-overlay modal-overlay-top" onClick={() => setPicker(null)}>
           <div className="modal-card stack" onClick={(e) => e.stopPropagation()}>
             <div className="top-bar">
               <h2>{picker === 'background' ? 'Background Color' : 'Accent Color'}</h2>

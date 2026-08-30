@@ -112,6 +112,8 @@ export const DEFAULT_TILT_DOWN_THRESHOLD = 28;
 
 const DEBOUNCE_MS = 140;
 const RESET_RATIO = 0.4;
+/** How long the phone must rest near level before the first score can register. */
+const SETTLE_MS = 1000;
 
 /**
  * Fires onCorrect/onSkip when the phone tilts away from the forehead neutral
@@ -124,6 +126,10 @@ const RESET_RATIO = 0.4;
  * calibration and nothing is inferred at turn start. Only when the player has
  * never calibrated does it fall back to taking the first reading of the turn as
  * neutral.
+ *
+ * Nothing scores until the phone has held near level for SETTLE_MS. Raising it
+ * to a forehead sweeps through the whole tilt range on the way up, which would
+ * otherwise register as a correct or a skip before play has really begun.
  */
 export function useTiltControl(
   active: boolean,
@@ -132,24 +138,33 @@ export function useTiltControl(
   upThreshold = DEFAULT_TILT_UP_THRESHOLD,
   downThreshold = DEFAULT_TILT_DOWN_THRESHOLD,
   calibratedNeutral: number | null = null,
+  onArmed?: () => void,
 ) {
   const neutral = useRef<number | null>(null);
   const triggered = useRef<'none' | 'correct' | 'skip'>('none');
   const overSince = useRef<{ direction: 'correct' | 'skip'; at: number } | null>(null);
+  const armed = useRef(false);
+  const settledSince = useRef<number | null>(null);
   const onCorrectRef = useRef(onCorrect);
   const onSkipRef = useRef(onSkip);
+  const onArmedRef = useRef(onArmed);
   onCorrectRef.current = onCorrect;
   onSkipRef.current = onSkip;
+  onArmedRef.current = onArmed;
 
   useEffect(() => {
     if (!active) {
       neutral.current = null;
       triggered.current = 'none';
       overSince.current = null;
+      armed.current = false;
+      settledSince.current = null;
       return;
     }
 
     neutral.current = calibratedNeutral;
+    armed.current = false;
+    settledSince.current = null;
 
     const resetZone = Math.min(upThreshold, downThreshold) * RESET_RATIO;
 
@@ -164,6 +179,21 @@ export function useTiltControl(
       }
       const delta = wrappedPitchDelta(pitch, neutral.current, pitchPeriodForAngle(angle));
       const now = performance.now();
+
+      // Arm only after the phone has rested near level for a full second.
+      if (!armed.current) {
+        if (Math.abs(delta) > resetZone) {
+          settledSince.current = null;
+          return;
+        }
+        if (settledSince.current === null) {
+          settledSince.current = now;
+          return;
+        }
+        if (now - settledSince.current < SETTLE_MS) return;
+        armed.current = true;
+        onArmedRef.current?.();
+      }
 
       if (triggered.current === 'none') {
         const direction: 'correct' | 'skip' | null =
@@ -259,4 +289,16 @@ export function useCalibrationReps(
     window.addEventListener('deviceorientation', handler);
     return () => window.removeEventListener('deviceorientation', handler);
   }, [active, direction, neutral]);
+}
+
+/**
+ * Whether tilt controls are worth offering at all. Desktop browsers expose
+ * DeviceOrientationEvent as a type while having no sensor behind it, so the
+ * event's existence alone proves nothing -- a coarse pointer is the practical
+ * signal for a phone or tablet.
+ */
+export function deviceLikelyHasTilt(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (!('DeviceOrientationEvent' in window)) return false;
+  return window.matchMedia('(pointer: coarse)').matches;
 }

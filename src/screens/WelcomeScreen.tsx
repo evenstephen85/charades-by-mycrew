@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGame } from '../state/GameContext';
 import { RulesContent, AboutContent } from '../components/InfoContent';
 import { TiltCalibration } from '../components/TiltCalibration';
+import { deviceLikelyHasTilt } from '../lib/motion';
 
 type Step = 'rules' | 'about' | 'tilt';
 
@@ -45,8 +46,14 @@ export function WelcomeScreen() {
               <AboutContent />
             </div>
           </div>
-          <button className="btn btn-primary btn-block btn-lg" onClick={() => setStep('tilt')}>
-            Next
+          <button
+            className="btn btn-primary btn-block btn-lg"
+            onClick={() =>
+              // Nothing to set up without a sensor, so finish here instead.
+              deviceLikelyHasTilt() ? setStep('tilt') : updateSettings({ onboarded: true })
+            }
+          >
+            {deviceLikelyHasTilt() ? 'Next' : "Let's Play"}
           </button>
         </>
       )}
